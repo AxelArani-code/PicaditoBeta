@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 5%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 7%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 7%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 142 70% 45%;
+    --primary-foreground: 0 0% 5%;
+    --secondary: 222 40% 12%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 222 40% 12%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 142 60% 35%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 222 40% 14%;
+    --input: 222 40% 14%;
+    --ring: 142 70% 45%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+  h1, h2, h3, h4, h5, h6 { @apply tracking-tight; }
+}
+
+@layer components {
+  .pitch-card {
+    @apply relative overflow-hidden rounded-xl border border-border
+           bg-card transition-all duration-300
+           hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10
+           hover:-translate-y-0.5;
+  }
+
+  .stat-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1
+           text-xs font-semibold bg-secondary text-muted-foreground;
+  }
+
+  .status-pending   { @apply bg-yellow-500/15 text-yellow-400 border border-yellow-500/30; }
+  .status-confirmed { @apply bg-green-500/15  text-green-400  border border-green-500/30; }
+  .status-rejected  { @apply bg-red-500/15    text-red-400    border border-red-500/30; }
+  .status-cancelled { @apply bg-gray-500/15   text-gray-400   border border-gray-500/30; }
+
+  .pitch-type-badge {
+    @apply inline-flex items-center rounded-md px-2 py-0.5
+           text-xs font-bold uppercase tracking-wide
+           bg-primary/20 text-primary border border-primary/30;
+  }
+
+  .section-header {
+    @apply mb-6 flex items-center justify-between;
+  }
+
+  .page-container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8;
+  }
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: hsl(var(--background)); }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+
+/* Animaciones */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in { animation: fade-in 0.3s ease forwards; }
