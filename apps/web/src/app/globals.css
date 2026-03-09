@@ -4,73 +4,91 @@
 
 @layer base {
   :root {
-    --background: 222 47% 5%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 7%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 7%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 142 70% 45%;
-    --primary-foreground: 0 0% 5%;
-    --secondary: 222 40% 12%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 222 40% 12%;
-    --muted-foreground: 215 20% 55%;
-    --accent: 142 60% 35%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 222 40% 14%;
-    --input: 222 40% 14%;
-    --ring: 142 70% 45%;
-    --radius: 0.75rem;
-  }
-}
+    /* Primary brand palette (Green) */
+    --green-50: #EFFEEF;
+    --green-100: #DAFEDA;
+    --green-200: #B7FBB9;
+    --green-300: #7FF684;
+    --green-400: #26E52E;
+    --green-500: #17D01F;
+    --green-600: #0CAD13;
+    --green-700: #0E8714;
+    --green-800: #116A16;
+    --green-900: #105715;
+    --green-950: #023107;
 
-@layer base {
+    /* Semantic tokens */
+    --primary: var(--green-500);
+    --primary-hover: var(--green-600);
+    --primary-active: var(--green-700);
+
+    --background: #FFFFFF;
+    --surface: #F9FAFB;
+    --border: #E5E7EB;
+
+    --text-primary: #111827;
+    --text-secondary: #4B5563;
+
+    /* Spacing scale */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 64px;
+
+    /* Border radius */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    /* Typography scale & line-heights */
+    --h1: 48px;
+    --h2: 36px;
+    --h3: 28px;
+    --h4: 22px;
+    --body: 16px;
+    --small: 14px;
+
+    --lh-heading: 1.2;
+    --lh-body: 1.6;
+  }
+
+  /* Dark mode variants (placeholder if needed eventually) */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      /* Adjust for dark theme if USER wants dark mode support */
+    }
+  }
+
   * { @apply border-border; }
-  body { @apply bg-background text-foreground; }
-  h1, h2, h3, h4, h5, h6 { @apply tracking-tight; }
-}
-
-@layer components {
-  .pitch-card {
-    @apply relative overflow-hidden rounded-xl border border-border
-           bg-card transition-all duration-300
-           hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10
-           hover:-translate-y-0.5;
+  body { 
+    @apply antialiased;
+    font-family: var(--font-inter), sans-serif;
+    color: var(--text-primary);
+    background-color: var(--background);
   }
 
-  .stat-badge {
-    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1
-           text-xs font-semibold bg-secondary text-muted-foreground;
-  }
-
-  .status-pending   { @apply bg-yellow-500/15 text-yellow-400 border border-yellow-500/30; }
-  .status-confirmed { @apply bg-green-500/15  text-green-400  border border-green-500/30; }
-  .status-rejected  { @apply bg-red-500/15    text-red-400    border border-red-500/30; }
-  .status-cancelled { @apply bg-gray-500/15   text-gray-400   border border-gray-500/30; }
-
-  .pitch-type-badge {
-    @apply inline-flex items-center rounded-md px-2 py-0.5
-           text-xs font-bold uppercase tracking-wide
-           bg-primary/20 text-primary border border-primary/30;
-  }
-
-  .section-header {
-    @apply mb-6 flex items-center justify-between;
-  }
-
-  .page-container {
-    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8;
+  h1, h2, h3, h4, h5, h6 { 
+    font-family: var(--font-raleway), sans-serif;
+    line-height: var(--lh-heading);
+    @apply tracking-tight font-semibold;
   }
 }
 
 /* Scrollbar personalizado */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: hsl(var(--background)); }
-::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+::-webkit-scrollbar-track { background: var(--background); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 
 /* Animaciones */
 @keyframes fade-in {

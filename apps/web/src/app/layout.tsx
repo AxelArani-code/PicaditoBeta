@@ -1,9 +1,37 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "sonner";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const inter = localFont({
+    src: [
+        {
+            path: "./fonts/Inter/Inter-VariableFont_opsz,wght.ttf",
+            style: "normal",
+        },
+        {
+            path: "./fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf",
+            style: "italic",
+        },
+    ],
+    variable: "--font-inter",
+    display: "swap",
+});
+
+const raleway = localFont({
+    src: [
+        {
+            path: "./fonts/Raleway/Raleway-VariableFont_wght.ttf",
+            style: "normal",
+        },
+        {
+            path: "./fonts/Raleway/Raleway-Italic-VariableFont_wght.ttf",
+            style: "italic",
+        },
+    ],
+    variable: "--font-raleway",
+    display: "swap",
+});
 
 export const metadata: Metadata = {
     title: {
@@ -25,7 +53,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="es" suppressHydrationWarning>
-            <body className={`${inter.variable} font-sans antialiased`}>
+            <body className={`${inter.variable} ${raleway.variable} font-sans antialiased text-text-primary bg-background`}>
                 {children}
                 <Toaster richColors position="top-right" />
             </body>
