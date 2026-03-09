@@ -225,9 +225,12 @@ Example variables:
 
 # Future Roadmap
 
-- Mobile application
-- Payments integration
-- Match statistics
-- Ranking system
-- League / tournament support
+- [x] Design Tokens (Colors, Typography, Spacing, Shadows, Radius)
+- [x] Design System Base Components (Button, Card, Typography, Forms)
+- [x] Project Architecture Refactor (Marketing, Dashboard, Shared components)
+- [ ] Mobile application
+- [ ] Payments integration
+- [ ] Match statistics
+- [ ] Ranking system
+- [ ] League / tournament support
 

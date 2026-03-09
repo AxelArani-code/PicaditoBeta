@@ -54,6 +54,29 @@ Each application may also define its own `.gitignore`.
 
 ---
 
+# Component Standards
+
+To maintain UI consistency:
+
+1. **Design System**: Use components from `@/components/design-system` for all basic UI elements (Buttons, Inputs, Cards).
+2. **Modularization**: Separate components into logical folders based on application areas, each component in its own directory:
+   - `shared/ComponentName/`: App-wide components (Navbar, Footer, Sidebar).
+   - `home/ComponentName/`: Landing page and public-facing elements (Hero, Features).
+   - `dashboard/ComponentName/`: App-specific features (Stats, User views, Forms).
+3. **Responsive first**: Use Tailwind's utility classes (`uw` breakpoint added for 1440px+).
+
+---
+
+# Development Progress
+
+- [x] Typography, Color, and Spacing Tokens
+- [x] Base Design System Components (Button, Input, Select, etc.)
+- [x] Landing Page Refactor (Modular components)
+- [ ] Dashboard Shell & UI Patterns
+- [ ] Authentication Views (Sign In / Sign Up)
+
+---
+
 # Monorepo Commands
 
 Install dependencies:
