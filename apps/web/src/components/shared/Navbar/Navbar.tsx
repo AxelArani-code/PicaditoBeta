@@ -40,7 +40,7 @@ export const Navbar = () => {
                 </div>
 
                 {/* Auth Buttons - Desktop */}
-                <div className="hidden lg:flex items-center gap-4">
+                <div className="hidden lg:flex items-center gap-4 " >
                     <Link href="/login">
                         <Button variant="outline" size="sm" className="border-gray-400 text-white hover:bg-white/10">
                             Iniciar sesión

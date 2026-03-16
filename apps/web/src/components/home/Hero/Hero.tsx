@@ -32,7 +32,7 @@ export const Hero = () => {
                             <Link href="/register" className="w-full sm:w-auto">
                                 <Button
                                     size="lg"
-                                    className="w-full sm:w-auto px-8 bg-primary hover:bg-primary/90 text-white font-semibold"
+                                    className="w-full sm:w-auto px-8 bg-primary hover:bg-primary/90 text-black font-semibold"
                                 >
                                     Crear mi cancha
                                 </Button>
