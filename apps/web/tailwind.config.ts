@@ -10,57 +10,64 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        background: "var(--background)",
+        surface: "var(--surface)",
+        border: "var(--border)",
+        text: {
+          primary: "var(--text-primary)",
+          secondary: "var(--text-secondary)",
+        },
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "var(--primary)",
+          hover: "var(--primary-hover)",
+          active: "var(--primary-active)",
         },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+        green: {
+          50: "var(--green-50)",
+          100: "var(--green-100)",
+          200: "var(--green-200)",
+          300: "var(--green-300)",
+          400: "var(--green-400)",
+          500: "var(--green-500)",
+          600: "var(--green-600)",
+          700: "var(--green-700)",
+          800: "var(--green-800)",
+          900: "var(--green-900)",
+          950: "var(--green-950)",
         },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-        pitch: {
-          green: "hsl(142, 70%, 35%)",
-          "green-light": "hsl(142, 70%, 45%)",
-          "green-dark": "hsl(142, 70%, 25%)",
-        },
+      },
+      spacing: {
+        "1": "var(--space-1)",
+        "2": "var(--space-2)",
+        "3": "var(--space-3)",
+        "4": "var(--space-4)",
+        "5": "var(--space-5)",
+        "6": "var(--space-6)",
+        "7": "var(--space-7)",
+        "8": "var(--space-8)",
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
+      },
+      boxShadow: {
+        sm: "var(--shadow-sm)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
+        heading: ["var(--font-raleway)", "sans-serif"],
+        sans: ["var(--font-inter)", "sans-serif"],
       },
-      backgroundImage: {
-        "pitch-pattern":
-          "repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.03) 40px, rgba(255,255,255,0.03) 42px)",
+      fontSize: {
+        h1: ["var(--h1)", { lineHeight: "var(--lh-heading)", fontWeight: "700" }],
+        h2: ["var(--h2)", { lineHeight: "var(--lh-heading)", fontWeight: "600" }],
+        h3: ["var(--h3)", { lineHeight: "var(--lh-heading)", fontWeight: "600" }],
+        h4: ["var(--h4)", { lineHeight: "var(--lh-heading)", fontWeight: "600" }],
+        body: ["var(--body)", { lineHeight: "var(--lh-body)", fontWeight: "400" }],
+        small: ["var(--small)", { lineHeight: "var(--lh-body)", fontWeight: "400" }],
       },
     },
   },
