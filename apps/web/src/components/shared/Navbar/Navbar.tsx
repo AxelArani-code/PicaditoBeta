@@ -1,19 +1,20 @@
 "use client";
 
-import Link from "next/link";
+import { motion } from "framer-motion";
+import { Trophy, Menu, X } from "lucide-react";
 import Image from "next/image";
-import { Menu, X } from "lucide-react";
 import { useState } from "react";
-import { Container, Button } from "../../design-system";
-
 export const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-
     return (
-        <nav className="sticky top-0 z-50 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 backdrop-blur-xl">
-            <Container className="flex items-center justify-between py-4">
-                <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-90">
-                    <div className="relative h-14 w-14 sm:h-18 sm:w-18 md:h-20 md:w-20 lg:h-24 lg:w-24">
+       <motion.div 
+          initial={{ y: -100 }}
+          animate={{ y: 0 }}
+          className="fixed top-4 left-0 right-0 z-50 px-4"
+        >
+          <nav className="max-w-6xl mx-auto rounded-full px-6 py-1 flex items-center justify-between shadow-2xl border border-white/25 bg-white/10 backdrop-blur-lg">
+            <div className="flex items-center gap-2">
+             <div className="relative h-14 w-14 sm:h-18 sm:w-18 md:h-20 md:w-20 lg:h-14 lg:w-24">
                         <Image
                             src="/logo-picadito.png"
                             alt="PicaDito Logo"
@@ -21,81 +22,59 @@ export const Navbar = () => {
                             className="object-contain"
                         />
                     </div>
-                </Link>
+            </div>
 
-                {/* Navigation Links - Desktop */}
-                <div className="hidden lg:flex items-center gap-8">
-                    <Link href="/features" className="text-white hover:text-primary transition-colors">
-                        Features
-                    </Link>
-                    <Link href="/torneos" className="text-white hover:text-primary transition-colors">
-                        Torneos
-                    </Link>
-                    <Link href="/reservas" className="text-white hover:text-primary transition-colors">
-                        Reservas
-                    </Link>
-                    <Link href="/ranking" className="text-white hover:text-primary transition-colors">
-                        Ranking
-                    </Link>
-                </div>
+            <div className="hidden md:flex items-center gap-8">
+              {['Features', 'Torneos', 'Reservas', 'Ranking', 'Pricing'].map((item) => (
+                <a key={item} href={`#${item.toLowerCase()}`} className="text-sm font-medium hover:text-primary transition-colors text-slate-300">
+                  {item}
+                </a>
+              ))}
+            </div>
 
-                {/* Auth Buttons - Desktop */}
-                <div className="hidden lg:flex items-center gap-4 " >
-                    <Link href="/login">
-                        <Button variant="outline" size="sm" className="border-gray-400 text-white hover:bg-white/10">
-                            Iniciar sesión
-                        </Button>
-                    </Link>
-                    <Link href="/register">
-                        <Button variant="primary" size="sm">
-                            Registrarse
-                        </Button>
-                    </Link>
-                </div>
+            <div className="flex items-center gap-3">
+              <button className="hidden sm:block text-sm font-semibold bg-transparent border border-white/55 text-white hover:bg-primary-hover active:bg-primary-active rounded-full px-5 py-2.5 shadow-sm transition-colors">
+                Iniciar sesión
+              </button>
+              <button className="hidden sm:block text-sm font-semibold bg-primary text-black hover:bg-primary-hover active:bg-primary-active rounded-full px-5 py-2.5 shadow-sm transition-colors">
+                Registrarte
+              </button>
+              <button 
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="md:hidden p-2 text-white hover:text-primary transition-colors"
+              >
+                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
+          </nav>
 
-                {/* Mobile Menu Button */}
-                <button
-                    className="lg:hidden text-white hover:text-primary transition-colors"
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    aria-label="Toggle menu"
-                >
-                    {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {isMenuOpen && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="md:hidden mt-4 mx-4 bg-white/10 backdrop-blur-lg rounded-lg border border-white/25 shadow-2xl"
+            >
+              <div className="flex flex-col p-4 gap-4">
+                {['Features', 'Torneos', 'Reservas', 'Ranking', 'Pricing'].map((item) => (
+                  <a 
+                    key={item} 
+                    href={`#${item.toLowerCase()}`} 
+                    className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {item}
+                  </a>
+                ))}
+                <button className="text-sm font-semibold px-4 py-2 bg-transparent border border-white/55 text-white hover:bg-primary-hover active:bg-primary-active rounded-full shadow-sm transition-colors">
+                  Iniciar sesión
                 </button>
-            </Container>
-
-            {/* Mobile Menu */}
-            {isMenuOpen && (
-                <div className="lg:hidden absolute top-full left-0 right-0 bg-gray-900/95 backdrop-blur-xl border-t border-gray-700">
-                    <Container className="py-4">
-                        <div className="flex flex-col gap-4">
-                            <Link href="/features" className="text-white hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>
-                                Features
-                            </Link>
-                            <Link href="/torneos" className="text-white hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>
-                                Torneos
-                            </Link>
-                            <Link href="/reservas" className="text-white hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>
-                                Reservas
-                            </Link>
-                            <Link href="/ranking" className="text-white hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>
-                                Ranking
-                            </Link>
-                            <div className="flex flex-col gap-2 mt-4">
-                                <Link href="/login" onClick={() => setIsMenuOpen(false)}>
-                                    <Button variant="outline" size="sm" className="w-full border-gray-400 text-white hover:bg-white/10">
-                                        Iniciar sesión
-                                    </Button>
-                                </Link>
-                                <Link href="/register" onClick={() => setIsMenuOpen(false)}>
-                                    <Button variant="primary" size="sm" className="w-full">
-                                        Registrarse
-                                    </Button>
-                                </Link>
-                            </div>
-                        </div>
-                    </Container>
-                </div>
-            )}
-        </nav>
+                <button className="bg-primary text-white hover:bg-primary-hover active:bg-primary-active rounded-full px-5 py-2.5 shadow-sm transition-colors">
+                  Crear cancha
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
     );
 };
