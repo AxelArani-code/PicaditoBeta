@@ -69,7 +69,6 @@
     }
   }
 
-  * { @apply border-border; }
   body { 
     @apply antialiased;
     font-family: var(--font-inter), sans-serif;
