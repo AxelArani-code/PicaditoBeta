@@ -6,7 +6,7 @@ import { Hero } from "@/components/home/Hero/Hero";
 import { Features } from "@/components/home/Features/Features";
 import { VenuesList } from "@/components/home/VenuesList/VenuesList";
 import BenefitsSection from "@/components/seccion/BenefitsSection";
-
+import OwnerSection from "@/components/seccion/OwnerSection";
 
 export const metadata: Metadata = {
     title: "Picadito - Reservas de fútbol amateur",
@@ -22,7 +22,8 @@ export default async function HomePage() {
             <main>
                 <Hero />
                 <Features />
-                <BenefitsSection /> 
+                <BenefitsSection />
+                <OwnerSection />
                 <VenuesList venues={venues} />
             </main>
             <Footer />
