@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Picadito.Application\Picadito.Application.csproj" />
+    <ProjectReference Include="..\Picadito.Infrastructure\Picadito.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

@@ -9,8 +9,8 @@ public class Booking
     public Guid PitchId { get; private set; }
     public DateOnly Date { get; private set; }
     public Guid UserId { get; private set; }
-    public BookingStatus Status { get; private set; }
-    public decimal TotalPrice { get; private set; }
+    public decimal TotalPrice { get; private set; } 
+
 
     public Booking(
         Guid timeSlotId,
@@ -25,6 +25,5 @@ public class Booking
         Date = date;
         UserId = userId;
         TotalPrice = totalPrice;
-        Status = BookingStatus.Pending;
     }
 }
