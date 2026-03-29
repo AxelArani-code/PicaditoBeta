@@ -4,7 +4,13 @@ import { motion } from "framer-motion";
 import { Trophy, Menu, X } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
-export const Navbar = () => {
+import type { View } from "@/components/home/HomePageClient";
+
+interface NavbarProps {
+  onNavigate: (view: View) => void;
+}
+
+export const Navbar = ({ onNavigate }: NavbarProps) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     return (
        <motion.div 
@@ -25,7 +31,7 @@ export const Navbar = () => {
             </div>
 
             <div className="hidden md:flex items-center gap-8">
-              {['Features', 'Torneos', 'Reservas', 'Ranking', 'Pricing'].map((item) => (
+              {['Inicio', 'Como Funciona', 'Beneficios', 'Canchas', 'Nosotros'].map((item) => (
                 <a key={item} href={`#${item.toLowerCase()}`} className="text-sm font-medium hover:text-primary transition-colors text-slate-300">
                   {item}
                 </a>
@@ -33,10 +39,16 @@ export const Navbar = () => {
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="hidden sm:block text-sm font-semibold bg-transparent border border-white/55 text-white hover:bg-primary-hover active:bg-primary-active rounded-full px-5 py-2.5 shadow-sm transition-colors">
+              <button
+                onClick={() => onNavigate('login')}
+                className="hidden sm:block text-sm font-semibold bg-transparent border border-white/55 text-white hover:bg-primary-hover active:bg-primary-active rounded-full px-5 py-2.5 shadow-sm transition-colors"
+              >
                 Iniciar sesión
               </button>
-              <button className="hidden sm:block text-sm font-semibold bg-primary text-black hover:bg-primary-hover active:bg-primary-active rounded-full px-5 py-2.5 shadow-sm transition-colors">
+              <button
+                onClick={() => onNavigate('register')}
+                className="hidden sm:block text-sm font-semibold bg-primary text-black hover:bg-primary-hover active:bg-primary-active rounded-full px-5 py-2.5 shadow-sm transition-colors"
+              >
                 Registrarte
               </button>
               <button 
@@ -66,11 +78,17 @@ export const Navbar = () => {
                     {item}
                   </a>
                 ))}
-                <button className="text-sm font-semibold px-4 py-2 bg-transparent border border-white/55 text-white hover:bg-primary-hover active:bg-primary-active rounded-full shadow-sm transition-colors">
+                <button
+                  onClick={() => { setIsMenuOpen(false); onNavigate('login'); }}
+                  className="text-sm font-semibold px-4 py-2 bg-transparent border border-white/55 text-white hover:bg-primary-hover active:bg-primary-active rounded-full shadow-sm transition-colors"
+                >
                   Iniciar sesión
                 </button>
-                <button className="bg-primary text-white hover:bg-primary-hover active:bg-primary-active rounded-full px-5 py-2.5 shadow-sm transition-colors">
-                  Crear cancha
+                <button
+                  onClick={() => { setIsMenuOpen(false); onNavigate('register'); }}
+                  className="bg-primary text-white hover:bg-primary-hover active:bg-primary-active rounded-full px-5 py-2.5 shadow-sm transition-colors"
+                >
+                 Registrase
                 </button>
               </div>
             </motion.div>
