@@ -1,10 +1,6 @@
 import { getVenues } from "@/lib/queries/venues";
 import type { Metadata } from "next";
-import { Navbar } from "@/components/shared/Navbar/Navbar";
-import { Footer } from "@/components/shared/Footer/Footer";
-import { Hero } from "@/components/home/Hero/Hero";
-import { Features } from "@/components/home/Features/Features";
-import { VenuesList } from "@/components/home/VenuesList/VenuesList";
+import { HomePageClient } from "@/components/home/HomePageClient";
 
 export const metadata: Metadata = {
     title: "Picadito - Reservas de fútbol amateur",
@@ -14,15 +10,6 @@ export const metadata: Metadata = {
 export default async function HomePage() {
     const venues = await getVenues().catch(() => []);
 
-    return (
-        <div className="min-h-screen bg-background text-text-primary">
-            <Navbar />
-            <main>
-                <Hero />
-                <Features />
-                <VenuesList venues={venues} />
-            </main>
-            <Footer />
-        </div>
-    );
+    return <HomePageClient venues={venues} />;
 }
+
