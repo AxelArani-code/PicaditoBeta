@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Picadito.Application.Common.Interfaces;
 using Picadito.Domain.Enums;
+using Picadito.Infrastructure.Persistence.Repositories;
 using Picadito.Infrastructure.Persistence;
 using Picadito.Application.Features.Bookings.Commands.CreateBooking;
 
@@ -18,6 +19,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(dataSource));
 
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

@@ -1,7 +1,8 @@
 using System;
 using Picadito.Domain.Entities;
 using Picadito.Application.Common.Interfaces;
-namespace Picadito.Infrastructure.Persistence;
+
+namespace Picadito.Infrastructure.Persistence.Repositories;
 
 public class BookingRepository(ApplicationDbContext context) : IBookingRepository
 {
