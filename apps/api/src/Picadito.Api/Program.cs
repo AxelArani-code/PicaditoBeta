@@ -6,6 +6,7 @@ using Picadito.Domain.Enums;
 using Picadito.Infrastructure.Persistence.Repositories;
 using Picadito.Infrastructure.Persistence;
 using Picadito.Application.Features.Bookings.Commands.CreateBooking;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +18,8 @@ var dataSource = dataSourceBuilder.Build();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(dataSource));
-
+// Registra todos los validadores del assembly actual
+builder.Services.AddValidatorsFromAssemblyContaining<CreateBookingCommandValidator>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();

@@ -1,13 +1,25 @@
 using System;
 using Picadito.Domain.Entities;
 using Picadito.Application.Common.Interfaces;
+using FluentValidation;
 namespace Picadito.Application.Features.Bookings.Commands.CreateBooking;
 
-public class CreateBookingHandler(IBookingRepository bookingRepository, ITimeSlotRepository timeSlotRepository)
+public class CreateBookingHandler(
+    IBookingRepository bookingRepository, 
+    ITimeSlotRepository timeSlotRepository,
+    IValidator<CreateBookingCommand> validator) // INyeccion del validador
 {
     public async Task<Guid> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
     {
-        // Paso: Buscamos el TimeSlot en la base de datos
+        // 1. Validación de FluentValidation (Sintáctica/Formato)
+        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            // Aquí va el manejo de errores personalizado.
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        // Buscamos el TimeSlot en la base de datos
         var timeSlot = await timeSlotRepository.GetByIdAsync(request.TimeSlotId, cancellationToken);
 
         // Validaction

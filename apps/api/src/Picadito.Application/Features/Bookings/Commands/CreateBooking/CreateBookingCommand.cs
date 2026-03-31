@@ -7,8 +7,5 @@ namespace Picadito.Application.Features.Bookings.Commands.CreateBooking;
 public class CreateBookingCommand
 {
     public Guid TimeSlotId { get; set; }
-    public Guid PitchId { get; set; }
-    public DateOnly Date { get; set; }
     public Guid UserId { get; set; }
-    public decimal TotalPrice { get; set; }
 }
