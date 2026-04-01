@@ -7,6 +7,10 @@ using Picadito.Infrastructure.Persistence.Repositories;
 using Picadito.Infrastructure.Persistence;
 using Picadito.Application.Features.Bookings.Commands.CreateBooking;
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +28,35 @@ builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 builder.Services.AddControllers();
+
+// !!!!!! En producción, este valor debería venir de una variable de 
+// entorno --------------------------------------
+// o un servicio de gestión de secretos. ---------------------!!!!!!
+
+// Esto evita que "sub" se convierta en "http://xmlsoap.org"
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
+var jwtSecret = "142e0349-eb55-4123-b058-cd0fb7fe66d6"; 
+var key = Encoding.ASCII.GetBytes(jwtSecret);
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = false, // Supabase no siempre valida el Issuer por defecto
+        ValidateAudience = true,
+        ValidAudience = "authenticated" // Este es el valor por defecto en Supabase
+    };
+});
+// Obligatorio para el Handler que necesita acceso al HttpContext para obtener el UserId del token JWT
+builder.Services.AddHttpContextAccessor(); 
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
