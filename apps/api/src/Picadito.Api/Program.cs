@@ -36,7 +36,13 @@ builder.Services.AddControllers();
 // Esto evita que "sub" se convierta en "http://xmlsoap.org"
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
-var jwtSecret = "142e0349-eb55-4123-b058-cd0fb7fe66d6"; 
+var jwtSecret = builder.Configuration["JwtSettings:Secret"];
+
+// Validación básica para asegurarnos de que el JWT Secret esté configurado
+if (string.IsNullOrEmpty(jwtSecret)) 
+{
+    throw new Exception("JWT Secret no configurado. Revisa tus User Secrets.");
+}
 var key = Encoding.ASCII.GetBytes(jwtSecret);
 builder.Services.AddAuthentication(options =>
 {

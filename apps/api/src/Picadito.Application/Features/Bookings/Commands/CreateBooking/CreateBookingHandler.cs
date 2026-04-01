@@ -33,8 +33,7 @@ public class CreateBookingHandler(
         // Aqui obtenemos el UserId del token JWT usando el HttpContext
         var user = httpContextAccessor.HttpContext?.User;
 
-        // El ID de usuario en tokens de Supabase
-        // Quiero imprimir en consola el userIdClaim para verificar que lo estoy obteniendo correctamente   
+        // El ID de usuario en tokens de Supabase  
         var userIdClaim = httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
         if (string.IsNullOrEmpty(userIdClaim))
