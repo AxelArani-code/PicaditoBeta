@@ -9,6 +9,11 @@
   <ItemGroup>
     <Folder Include="Entities\" />
     <Folder Include="Enums\" />
+    <Folder Include="Errors\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ErrorOr" Version="2.0.1" />
   </ItemGroup>
 
 </Project>

@@ -66,6 +66,9 @@ builder.Services.AddHttpContextAccessor();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+// Agrega los servicios necesarios para ProblemDetails
+builder.Services.AddProblemDetails();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -73,6 +76,10 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+// Habilita el middleware para que las respuestas automáticas (como 404) 
+// también usen el formato ProblemDetails
+app.UseStatusCodePages(); 
 
 app.UseHttpsRedirection();
 
