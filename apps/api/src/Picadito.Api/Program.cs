@@ -39,6 +39,7 @@ builder.Services.AddOpenApi();
 // Repositorios y Handlers
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
+builder.Services.AddScoped<IPitchRepository, PitchRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 
 // Validaciones

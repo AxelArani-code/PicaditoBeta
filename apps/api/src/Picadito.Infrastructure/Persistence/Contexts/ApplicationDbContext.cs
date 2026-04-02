@@ -11,6 +11,7 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<TimeSlot> TimeSlots => Set<TimeSlot>();
+    public DbSet<Pitch> Pitches => Set<Pitch>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
@@ -61,6 +62,36 @@ public class ApplicationDbContext : DbContext
         entity.Property(e => e.Date).HasColumnName("date");
         entity.Property(e => e.Price).HasColumnName("price").HasPrecision(10, 2);
         entity.Property(e => e.Status).HasColumnName("status");
+    });
+
+    // Mapeo de la tabla existente PITCHES
+    modelBuilder.Entity<Pitch>(entity =>
+    {
+        entity.ToTable("pitches");
+        entity.HasKey(e => e.Id);
+        entity.Property(e => e.Id).HasColumnName("id");
+        entity.Property(e => e.Name).HasColumnName("name");
+        entity.Property(e => e.VenueId).HasColumnName("venue_id");
+
+        // Configuración de la relación con Venue
+        entity.HasOne(p => p.Venue)
+              .WithMany(v => v.Pitches)
+              .HasForeignKey(p => p.VenueId);
+    });
+
+    // Mapeo de la tabla existente VENUES
+    modelBuilder.Entity<Venue>(entity =>
+    {
+        entity.ToTable("venues");
+        entity.HasKey(e => e.Id);
+        entity.Property(e => e.Id).HasColumnName("id");
+        entity.Property(e => e.Name).HasColumnName("name");
+        entity.Property(e => e.Address).HasColumnName("address");
+        entity.Property(e => e.OwnerId).HasColumnName("owner_id");
+        entity.Property(e => e.Description).HasColumnName("description");
+        entity.Property(e => e.IsActive).HasColumnName("is_active");
+        entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
     });
 }
 }
