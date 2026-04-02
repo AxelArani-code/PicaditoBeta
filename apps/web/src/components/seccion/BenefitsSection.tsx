@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 const benefits = [
   {
@@ -59,6 +60,30 @@ const benefits = [
 ];
 
 export default function BenefitsSection() {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+        delayChildren: 0.3
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 50, scale: 0.9 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.6,
+        ease: "easeOut"
+      }
+    }
+  };
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-20 md:py-32">
       {/* Background decorative element to match Hero */}
@@ -70,7 +95,13 @@ export default function BenefitsSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 w-full">
         
         {/* Encabezado Principal adaptado a tipografía del Hero */}
-        <div className="text-center max-w-3xl mx-auto mb-16 md:mb-24">
+        <motion.div
+          className="text-center max-w-3xl mx-auto mb-16 md:mb-24"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true, margin: "-100px" }}
+        >
           <h2 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight">
             Todo lo que necesitás <br className="hidden md:block"/>
             <span className="text-primary">para jugar</span>.
@@ -78,30 +109,64 @@ export default function BenefitsSection() {
           <p className="mt-6 text-lg text-gray-300 max-w-xl mx-auto leading-relaxed">
             Diseñamos Picadito para que armar tu partido sea tan fácil como jugarlo.
           </p>
-        </div>
+        </motion.div>
 
         {/* Grid de Beneficios con diseño oscuro/tech */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+        >
           {benefits.map((benefit, index) => (
-            <div 
+            <motion.div 
               key={index} 
               className="group bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-8 hover:bg-gray-800/60 hover:-translate-y-1 hover:border-gray-600 transition-all duration-300 shadow-lg hover:shadow-xl flex flex-col h-full"
+              variants={cardVariants}
             >
               {/* Contenedor del ícono con color primary puro desde Hero */}
-              <div className="mb-6 transform transition-transform duration-300 group-hover:scale-110 origin-left">
+              <motion.div
+                className="mb-6 transform transition-transform duration-300 group-hover:scale-110 origin-left"
+                initial={{ scale: 0, rotate: -10 }}
+                whileInView={{
+                  scale: 1,
+                  rotate: 0,
+                  transition: { delay: index * 0.1 + 0.5, duration: 0.4 }
+                }}
+                viewport={{ once: true }}
+              >
                 {benefit.icon}
-              </div>
+              </motion.div>
               
               {/* Textos */}
-              <h3 className="text-xl font-bold text-white mb-3">
+              <motion.h3
+                className="text-xl font-bold text-white mb-3"
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{
+                  opacity: 1,
+                  x: 0,
+                  transition: { delay: index * 0.1 + 0.6, duration: 0.4 }
+                }}
+                viewport={{ once: true }}
+              >
                 {benefit.title}
-              </h3>
-              <p className="text-gray-300 text-lg leading-relaxed flex-grow">
+              </motion.h3>
+              <motion.p
+                className="text-gray-300 text-lg leading-relaxed flex-grow"
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{
+                  opacity: 1,
+                  x: 0,
+                  transition: { delay: index * 0.1 + 0.7, duration: 0.4 }
+                }}
+                viewport={{ once: true }}
+              >
                 {benefit.description}
-              </p>
-            </div>
+              </motion.p>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
         
       </div>
     </section>
