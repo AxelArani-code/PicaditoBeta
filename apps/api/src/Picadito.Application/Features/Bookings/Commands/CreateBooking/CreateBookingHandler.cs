@@ -4,6 +4,7 @@ using Picadito.Application.Common.Interfaces;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Picadito.Domain.Errors;
+using Picadito.Domain.Enums;
 using ErrorOr;
 namespace Picadito.Application.Features.Bookings.Commands.CreateBooking;
 
@@ -15,7 +16,7 @@ public class CreateBookingHandler(
 {
     public async Task<ErrorOr<Guid>> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
     {   
-        // 1. Validación de FluentValidation (Sintáctica/Formato)
+        // Logica de validacion usando FluentValidation
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
         {
@@ -23,13 +24,12 @@ public class CreateBookingHandler(
                 Error.Validation(error.PropertyName, error.ErrorMessage));
         }
 
-        // Buscamos el TimeSlot en la base de datos
+        // Logica de TimeSlot y manejo de errores
         var timeSlot = await timeSlotRepository.GetByIdAsync(request.TimeSlotId, cancellationToken);
-
-        // Manejo de errores: 
         if (timeSlot is null) return DomainErrors.Booking.NotFound;
-        if (timeSlot.Status != "available") return DomainErrors.Booking.NotAvailable;
+        if (timeSlot.Status != SlotStatus.available.ToString()) return DomainErrors.Booking.NotAvailable;
 
+        // Logica de JWT y manejo de errores
         // Aqui obtenemos el UserId del token JWT usando el HttpContext
         var user = httpContextAccessor.HttpContext?.User;
 

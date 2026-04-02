@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext
 {
     // 1. Registra el enum globalmente
     modelBuilder.HasPostgresEnum<BookingStatus>("booking_status");
+    modelBuilder.HasPostgresEnum<SlotStatus>("slot_status");
 
     // Mapeo de la tabla BOOKINGS
     modelBuilder.Entity<Booking>(entity =>
