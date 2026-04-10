@@ -1,0 +1,18 @@
+@PicaditoApi_HostAddress = http://localhost:5000
+
+GET {{PicaditoApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+POST {{PicaditoApi_HostAddress}}/api/bookings
+Content-Type: application/json
+
+{
+  "timeSlotId": "6c2e3cc2-75af-4d7b-b097-add006aba68d",
+  "pitchId": "4f5d4e0b-4f17-46e7-a654-ac0b84052c93",
+  "date": "2024-10-25",
+  "userId": "1db2b942-8a7f-4884-99ee-ce89b1881c36",
+  "totalPrice": 10000
+}
+###
