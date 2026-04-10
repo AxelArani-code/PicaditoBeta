@@ -1,5 +1,6 @@
 'use client';
 
+import { Footer } from "@/components/shared/Footer/Footer";
 import { Navbar } from "@/components/shared/Navbar/Navbar";
 
 
@@ -220,6 +221,7 @@ export default function HowWorks() {
           </div>
         </div>
       </main>
+      <Footer/>
      
       <style jsx global>{`
         .glass-panel {
