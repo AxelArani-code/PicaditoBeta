@@ -1,13 +1,61 @@
+import { Instagram, Trophy, Twitter } from "lucide-react";
+import Image from "next/image";
 import { Container, Body } from "../../design-system";
 
 export const Footer = () => {
     return (
-        <footer className="border-t border-border py-12 bg-surface">
-            <Container className="text-center">
-                <Body className="text-small text-text-secondary">
-                    © 2026 Picadito · Fútbol amateur en Argentina
-                </Body>
-            </Container>
-        </footer>
+        <footer className="py-20 px-6 border-t border-white/5 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900  ">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-12">
+        <div>
+          <div className="flex items-center gap-2 mb-6">
+            <div className="relative h-20 w-40">
+              <Image
+                src="/logo-picadito.png"
+                alt="PicaDito Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+          </div>
+          <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
+            La plataforma definitiva para la gestión de complejos deportivos y torneos de fútbol amateur.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-12 md:gap-20">
+          <div className="space-y-4">
+            <p className="text-white font-bold text-sm uppercase tracking-widest">Plataforma</p>
+            <div className="flex flex-col gap-3 text-sm text-slate-500">
+              <a href="#" className="hover:text-primary transition-colors">Features</a>
+              <a href="#" className="hover:text-primary transition-colors">Pricing</a>
+              <a href="#" className="hover:text-primary transition-colors">Torneos</a>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <p className="text-white font-bold text-sm uppercase tracking-widest">Legal</p>
+            <div className="flex flex-col gap-3 text-sm text-slate-500">
+              <a href="#" className="hover:text-primary transition-colors">Privacidad</a>
+              <a href="#" className="hover:text-primary transition-colors">Términos</a>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <p className="text-white font-bold text-sm uppercase tracking-widest">Social</p>
+            <div className="flex gap-4">
+              <a href="#" className="w-10 h-10 rounded-xl bg-surface-dark border border-white/10 flex items-center justify-center hover:bg-primary/20 hover:border-primary/30 transition-all group">
+                <Instagram className="w-5 h-5 text-slate-500 group-hover:text-primary" />
+              </a>
+              <a href="#" className="w-10 h-10 rounded-xl bg-surface-dark border border-white/10 flex items-center justify-center hover:bg-primary/20 hover:border-primary/30 transition-all group">
+                <Twitter className="w-5 h-5 text-slate-500 group-hover:text-primary" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="text-slate-600 text-xs font-medium">
+          © 2024 FutManage. Todos los derechos reservados.
+        </div>
+      </div>
+    </footer>
     );
 };
