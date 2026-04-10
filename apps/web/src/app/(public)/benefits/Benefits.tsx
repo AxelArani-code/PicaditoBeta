@@ -1,3 +1,5 @@
+"use client";
+
 import { Navbar } from '@/components/shared/Navbar/Navbar';
 import { AnimatePresence, motion } from "framer-motion";
 import { BarChart3, Calendar, CheckCircle2, Trophy, TrendingUp } from "lucide-react";
