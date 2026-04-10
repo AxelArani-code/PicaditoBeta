@@ -255,8 +255,7 @@ export default function TurnosClient({ pitch, pitchImageSrc }: Props) {
   // ── Data fetching ─────────────────────────────────────────────────────────────
   const { slots, isLoading, error } = useAvailableSlots(
     pitch.id,
-    selectedDate,
-    pitch.pricePerHour
+    selectedDate
   );
 
   // Group available slots by period for rendering
@@ -283,9 +282,28 @@ export default function TurnosClient({ pitch, pitchImageSrc }: Props) {
   }
 
   // ── Booking CTA URL ───────────────────────────────────────────────────────────
-  const confirmUrl = selectedSlot
-    ? `/inicio/cancha/${pitch.id}/confirmacion?slot=${selectedSlot.id}&date=${selectedDate}`
-    : "#";
+  // Encode ALL info needed by the confirmation page into query params so it
+  // doesn't need an extra fetch.
+  const confirmUrl = useMemo(() => {
+    if (!selectedSlot) return "#";
+    const p = new URLSearchParams({
+      slot_id:     selectedSlot.id,
+      date:        selectedDate,
+      start_time:  selectedSlot.startTime,
+      end_time:    selectedSlot.endTime,
+      price:       String(selectedSlot.price),
+      price_fmt:   selectedSlot.priceFormatted,
+      // Pitch / venue info
+      pitch_name:  pitch.name,
+      venue_name:  pitch.venueName,
+      venue_city:  pitch.venueCity,
+      venue_addr:  pitch.venueAddress,
+      pitch_type:  typeLabel,
+      surface:     surfaceLabel,
+      img:         pitchImageSrc,
+    });
+    return `/inicio/cancha/${pitch.id}/confirmacion?${p.toString()}`;
+  }, [selectedSlot, selectedDate, pitch, typeLabel, surfaceLabel, pitchImageSrc]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Render
@@ -481,7 +499,7 @@ export default function TurnosClient({ pitch, pitchImageSrc }: Props) {
                 <SummaryRow
                   icon={CircleDollarSign}
                   label="Total"
-                  value={pitch.priceFormatted}
+                  value={selectedSlot ? selectedSlot.priceFormatted : "—"}
                   highlight
                 />
               </div>

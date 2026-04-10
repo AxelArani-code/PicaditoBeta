@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 
 const BACKEND_BASE_URL = "http://localhost:5000/api/Bookings";
 
+// ── Next.js 14 App Router: params is a Promise for dynamic routes ──────────
+type CatchAllParams = { params: Promise<{ path: string[] }> };
+
 const buildBackendUrl = (pathSegments: string[] = [], searchParams: URLSearchParams) => {
   const backendUrl = new URL(BACKEND_BASE_URL);
 
@@ -18,7 +21,6 @@ const buildBackendUrl = (pathSegments: string[] = [], searchParams: URLSearchPar
 
 const buildHeaders = (request: Request) => {
   const authorization = request.headers.get("authorization");
-
   return {
     Accept: "*/*",
     "Content-Type": "application/json",
@@ -27,14 +29,13 @@ const buildHeaders = (request: Request) => {
 };
 
 const proxyRequest = async (request: Request, pathSegments: string[]) => {
-  const url = new URL(request.url);
+  const url        = new URL(request.url);
   const backendUrl = buildBackendUrl(pathSegments, url.searchParams);
-  const headers = buildHeaders(request);
+  const headers    = buildHeaders(request);
 
-  const init: RequestInit = {
-    method: request.method,
-    headers,
-  };
+  console.log(`🔵 proxy/bookings → ${request.method} ${backendUrl}`);
+
+  const init: RequestInit = { method: request.method, headers };
 
   if (request.method !== "GET" && request.method !== "HEAD") {
     init.body = await request.text();
@@ -42,40 +43,47 @@ const proxyRequest = async (request: Request, pathSegments: string[]) => {
 
   try {
     const response = await fetch(backendUrl, init);
-    const body = await response.text();
+    const body     = await response.text();
+
+    console.log(`🔵 proxy/bookings ← ${response.status} ${backendUrl}`);
 
     const responseHeaders = new Headers();
     const contentType = response.headers.get("content-type");
     if (contentType) responseHeaders.set("content-type", contentType);
 
-    return new NextResponse(body, {
-      status: response.status,
-      headers: responseHeaders,
-    });
+    return new NextResponse(body, { status: response.status, headers: responseHeaders });
   } catch (error) {
-    console.error("❌ proxy/bookings/[...path]: error en fetch:", error);
+    console.error("❌ proxy/bookings/[...path] fetch error:", { url: backendUrl, error });
     return new NextResponse(
       JSON.stringify({ error: "No se pudo conectar al backend" }),
-      {
-        status: 502,
-        headers: { "content-type": "application/json" },
-      }
+      { status: 502, headers: { "content-type": "application/json" } }
     );
   }
 };
 
-export async function PATCH(request: Request, { params }: { params: { path: string[] } }) {
-  return proxyRequest(request, params.path);
+// ── Route handlers — params is awaited for Next.js 14 compatibility ───────
+
+export async function PATCH(request: Request, { params }: CatchAllParams) {
+  const { path } = await params;
+  return proxyRequest(request, path);
 }
 
-export async function GET(request: Request, { params }: { params: { path: string[] } }) {
-  return proxyRequest(request, params.path);
+export async function GET(request: Request, { params }: CatchAllParams) {
+  const { path } = await params;
+  return proxyRequest(request, path);
 }
 
-export async function POST(request: Request, { params }: { params: { path: string[] } }) {
-  return proxyRequest(request, params.path);
+export async function POST(request: Request, { params }: CatchAllParams) {
+  const { path } = await params;
+  return proxyRequest(request, path);
 }
 
-export async function DELETE(request: Request, { params }: { params: { path: string[] } }) {
-  return proxyRequest(request, params.path);
+export async function DELETE(request: Request, { params }: CatchAllParams) {
+  const { path } = await params;
+  return proxyRequest(request, path);
+}
+
+export async function PUT(request: Request, { params }: CatchAllParams) {
+  const { path } = await params;
+  return proxyRequest(request, path);
 }

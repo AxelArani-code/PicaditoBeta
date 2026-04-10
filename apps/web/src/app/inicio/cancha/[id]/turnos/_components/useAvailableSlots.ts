@@ -2,29 +2,37 @@
 
 // ─────────────────────────────────────────────────────────────────────────────
 // useAvailableSlots.ts
-// Obtiene los turnos disponibles de una cancha via .NET API (proxy)
+// Obtiene los turnos disponibles consultando la tabla `time_slots` en Supabase.
 //
-// Arquitectura:
-//   TurnosClient → useAvailableSlots → /api/proxy/pitches/{id}/slots → .NET API → Supabase
+// Arquitectura (este hook):
+//   TurnosClient → useAvailableSlots → Supabase (time_slots)
+//
+// Filtros obligatorios:
+//   - pitch_id  = pitchId (cancha actual)
+//   - date      = selectedDate (fecha seleccionada en el carrusel)
+//   - status    = 'available'
+//
+// El backend maneja cierres de emergencia y precios dinámicos vía CRON/Triggers.
+// Este frontend sólo consume los datos ya preparados en `time_slots`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from "react";
-import { getAccessToken } from "@/lib/auth/session";
-import { formatPrice, mapSlotRow } from "./booking.helpers";
-import type { BookingTimeSlot, UseAvailableSlotsReturn } from "./booking.types";
+import { createClient } from "@/lib/supabase/client";
+import { mapRawSlot } from "./booking.helpers";
+import type { BookingTimeSlot, RawTimeSlot, UseAvailableSlotsReturn } from "./booking.types";
 
 /**
  * Custom hook que obtiene los turnos disponibles de una cancha para una fecha
- * determinada, pasando por el proxy local → .NET API → Supabase.
+ * determinada, consultando directamente la tabla `time_slots` en Supabase.
  *
  * @param pitchId       UUID de la cancha
  * @param selectedDate  Fecha en formato ISO "YYYY-MM-DD"
- * @param pricePerHour  Precio por hora para formatear cada slot
  */
 export function useAvailableSlots(
   pitchId: string,
   selectedDate: string,
-  pricePerHour: number
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _pricePerHour?: number   // kept for API compatibility — price now comes from the DB row
 ): UseAvailableSlotsReturn {
   const [slots,     setSlots]     = useState<BookingTimeSlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,38 +48,29 @@ export function useAvailableSlots(
       setError(null);
 
       try {
-        const token = getAccessToken();
+        const supabase = createClient();
 
-        const url = `/api/proxy/pitches/${encodeURIComponent(pitchId)}/slots?date=${encodeURIComponent(selectedDate)}`;
-
-        const response = await fetch(url, {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
+        const { data, error: sbError } = await supabase
+          .from("time_slots")
+          .select("id, pitch_id, date, start_time, end_time, price, status")
+          .eq("pitch_id", pitchId)
+          .eq("date", selectedDate)
+          .eq("status", "available")
+          .order("start_time", { ascending: true });
 
         if (ignore) return;
 
-        if (!response.ok) {
-          // Tratar error como sin turnos, no como crash de UI
-          console.warn("[useAvailableSlots] API error:", response.status, response.statusText);
+        console.log("[useAvailableSlots] raw Supabase response:", { data, error: sbError });
+
+        if (sbError) {
+          console.warn("[useAvailableSlots] Supabase error:", sbError.message);
           setSlots([]);
-          setError(null);
+          setError(null); // Show empty state, not a crash
           return;
         }
 
-        const data = await response.json();
-        const priceFormatted = formatPrice(pricePerHour);
-
-        // La API puede devolver un array de TimeSlotDto o un objeto con items
-        const rawSlots: Record<string, unknown>[] = Array.isArray(data)
-          ? data
-          : (data?.items ?? []);
-
-        const mapped = rawSlots.map((row) => mapSlotRow(row, priceFormatted));
+        const rawRows = (data ?? []) as RawTimeSlot[];
+        const mapped  = rawRows.map((row) => mapRawSlot(row));
 
         setSlots(mapped);
       } catch (err) {
@@ -89,7 +88,7 @@ export function useAvailableSlots(
     return () => {
       ignore = true;
     };
-  }, [pitchId, selectedDate, pricePerHour]);
+  }, [pitchId, selectedDate]);
 
   return { slots, isLoading, error };
 }

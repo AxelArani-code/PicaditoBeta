@@ -13,6 +13,7 @@ import {
     ChevronRight,
     X,
     Menu,
+    CalendarDays,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { clearAuthSession } from "@/lib/auth/session";
@@ -20,8 +21,9 @@ import { clearAuthSession } from "@/lib/auth/session";
 // ─── Navigation config ────────────────────────────────────────────────────────
 
 const EXPLORE_ITEMS = [
-    { href: "/inicio",  label: "Inicio",    icon: MapPin },
-    { href: "/torneos", label: "Torneos",    icon: Trophy },
+    { href: "/inicio",           label: "Inicio",        icon: MapPin },
+    { href: "/torneos",          label: "Torneos",        icon: Trophy },
+    { href: "/inicio/mis-reservas", label: "Mis Reservas",   icon: CalendarDays },
 ];
 
 const INFO_ITEMS = [
