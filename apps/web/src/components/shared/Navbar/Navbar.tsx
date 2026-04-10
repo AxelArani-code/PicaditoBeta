@@ -33,18 +33,28 @@ export const Navbar = ({ onNavigate }: NavbarProps) => {
             </div>
 
             <div className="hidden md:flex items-center gap-8">
-              {['Inicio', 'Como Funciona', 'Beneficios', 'Canchas', 'Nosotros'].map((item) => (
-                item === 'Beneficios' ? (
+              {[
+                { label: 'Inicio', href: '#inicio' },
+                { label: 'Como Funciona', href: '/how-works', isRoute: true },
+                { label: 'Beneficios', href: '/benefits', isRoute: true },
+                { label: 'Canchas', href: '#canchas' },
+                { label: 'Nosotros', href: '#nosotros' },
+              ].map((item) => (
+                item.isRoute ? (
                   <button
-                    key={item}
-                    onClick={() => router.push('/benefits')}
+                    key={item.label}
+                    onClick={() => router.push(item.href)}
                     className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
                   >
-                    {item}
+                    {item.label}
                   </button>
                 ) : (
-                  <a key={item} href={`#${item.toLowerCase()}`} className="text-sm font-medium hover:text-primary transition-colors text-slate-300">
-                    {item}
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
+                  >
+                    {item.label}
                   </a>
                 )
               ))}

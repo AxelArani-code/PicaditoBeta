@@ -1,6 +1,6 @@
 'use client';
 
-import Benefits from '@/components/home/benefits/Benefits';
+import Benefits from '@/app/(public)/benefits/Benefits';
 
 export default function BenefitsPage() {
   return (
@@ -8,4 +8,4 @@ export default function BenefitsPage() {
       <Benefits />
     </div>
   );
-}
+} 
