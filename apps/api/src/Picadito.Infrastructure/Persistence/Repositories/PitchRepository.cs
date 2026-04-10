@@ -15,28 +15,52 @@ public class PitchRepository(ApplicationDbContext context) : IPitchRepository
             .AnyAsync(p => p.Id == pitchId && p.Venue.OwnerId == userId, cancellationToken);
     }
     
-    public async Task<List<PitchDto>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<List<PitchDto>> GetAllAsync(
+        Guid? venueId, 
+        string? type, 
+        string? surface,
+        CancellationToken cancellationToken)
     {
         // Obtenemos todas las canchas activas incluyendo el Venue asociado
-        // El filtro global de DeletedAt ya filtra las canchas eliminadas
-        var pitches = await context.Pitches
-            .IgnoreQueryFilters() // Necesario para incluir canchas inactivas si se requiere, 
-                                  // pero el filtro global ya excluye DeletedAt != null
+        // Usamos IQueryable para poder añadir filtros condicionales después
+        var query = context.Pitches
             .Where(p => p.IsActive)
             .Include(p => p.Venue)
-            .Select(p => new PitchDto
-            {
-                Id = p.Id,
-                Name = p.Name,
-                VenueId = p.VenueId,
-                VenueName = p.Venue.Name,
-                Type = p.Type.ToString(),
-                Surface = p.Surface.ToString(),
-                PricePerHour = p.PricePerHour,
-                IsActive = p.IsActive
-            })
-            .ToListAsync(cancellationToken);
+            .AsQueryable();
+        
+         // Filtro por Complejo (Venue)
+        if (venueId.HasValue)
+        {
+            query = query.Where(p => p.VenueId == venueId.Value);
+        }
 
-        return pitches;
+        // Filtro por Tipo de Cancha
+        if (!string.IsNullOrEmpty(type))
+        {
+            // Al ser Enum, comparamos contra el valor en string que guardamos en la DB
+            query = query.Where(p => p.Type.ToString() == type);
+        }
+
+        // Filtro por Superficie
+        if (!string.IsNullOrEmpty(surface))
+        {
+            query = query.Where(p => p.Surface.ToString() == surface);
+        }
+
+        // Ejecutamos la proyección y la consulta final
+        var pitches = await query
+            .Select(p => new PitchDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    VenueId = p.VenueId,
+                    VenueName = p.Venue.Name,
+                    Type = p.Type.ToString(),
+                    Surface = p.Surface.ToString(),
+                    PricePerHour = p.PricePerHour,
+                    IsActive = p.IsActive
+                })
+            .ToListAsync(cancellationToken);
+            return pitches;
     }
 }

@@ -7,8 +7,11 @@ public interface IPitchRepository
 {
     Task<bool> IsOwnerAsync(Guid pitchId, Guid userId, CancellationToken cancellationToken);
     
-    /// <summary>
     /// Obtiene todas las canchas activas con información del Venue asociado.
-    /// </summary>
-    Task<List<PitchDto>> GetAllAsync(CancellationToken cancellationToken);
+    /// Se incluye filtros opcionales nullables.
+    Task<List<PitchDto>> GetAllAsync(
+        Guid? venueId, 
+        string? type, 
+        string? surface, 
+        CancellationToken cancellationToken);
 }

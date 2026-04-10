@@ -7,5 +7,8 @@ namespace Picadito.Application.Features.Pitches.Queries.GetAllPitches;
 public class GetAllPitchesQuery
 {
     // Propiedades opcionales para filtrado (ej: por Venue, por tipo, etc.)
-    // Se pueden agregar según necesidad de la API
+   
+    public Guid? VenueId { get; init; }
+    public string? Type { get; init; }
+    public string? Surface { get; init; }
 }

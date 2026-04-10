@@ -20,14 +20,16 @@ public class PitchesController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene todas las canchas activas.
+    /// Obtiene todas las canchas activas con filtros adicionales
     /// </summary>
     /// <param name="cancellationToken">Token de cancelación.</param>
     /// <returns>Lista de canchas o errores.</returns>
     [HttpGet]
-    public async Task<IActionResult> GetAllPitches(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAllPitches(
+        [FromQuery] GetAllPitchesQuery query,
+        CancellationToken cancellationToken)
     {
-        var query = new GetAllPitchesQuery();
+
         var result = await _getAllPitchesHandler.Handle(query, cancellationToken);
 
         return result.Match(

@@ -73,7 +73,13 @@ public class GetAllPitchesHandler(
         }
 
         // Logica de negocio: Obtener todas las canchas activas
-        var pitches = await pitchRepository.GetAllAsync(cancellationToken);
+        // Se agregan parametros de filtrado opcionales.
+        var pitches = await pitchRepository.GetAllAsync(
+            request.VenueId, 
+            request.Type, 
+            request.Surface, 
+            cancellationToken
+            );
 
         // Retornamos la lista de canchas
         return pitches;
