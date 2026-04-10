@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Picadito.Api/Picadito.Api.csproj" />
+    <Project Path="src/Picadito.Application/Picadito.Application.csproj" />
+    <Project Path="src/Picadito.Domain/Picadito.Domain.csproj" />
+    <Project Path="src/Picadito.Infrastructure/Picadito.Infrastructure.csproj" />
+  </Folder>
+</Solution>
