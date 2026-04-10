@@ -1,0 +1,35 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{1787FE1D-075E-9E68-7218-25F1BD1BBEAB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "api", "api", "{BC2D172B-13BC-136C-CDB1-4B1A687208C4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{5297E159-35AB-900F-0FBF-1931F1997C37}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picadito.Api", "apps\api\src\Picadito.Api\Picadito.Api.csproj", "{B7148A2D-8A4A-831B-98EC-72A4017B68CB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B7148A2D-8A4A-831B-98EC-72A4017B68CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7148A2D-8A4A-831B-98EC-72A4017B68CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7148A2D-8A4A-831B-98EC-72A4017B68CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7148A2D-8A4A-831B-98EC-72A4017B68CB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BC2D172B-13BC-136C-CDB1-4B1A687208C4} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
+		{5297E159-35AB-900F-0FBF-1931F1997C37} = {BC2D172B-13BC-136C-CDB1-4B1A687208C4}
+		{B7148A2D-8A4A-831B-98EC-72A4017B68CB} = {5297E159-35AB-900F-0FBF-1931F1997C37}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8A5D19B2-1E3E-46A9-BD3F-3974565F08FE}
+	EndGlobalSection
+EndGlobal

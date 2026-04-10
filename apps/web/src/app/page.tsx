@@ -3,8 +3,7 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/shared/Navbar/Navbar";
 import { Footer } from "@/components/shared/Footer/Footer";
 import { Hero } from "@/components/home/Hero/Hero";
-import { Features } from "@/components/home/Features/Features";
-import { VenuesList } from "@/components/home/VenuesList/VenuesList";
+
 import BenefitsSection from "@/components/seccion/BenefitsSection";
 import OwnerSection from "@/components/seccion/OwnerSection";
 
@@ -21,10 +20,10 @@ export default async function HomePage() {
             <Navbar />
             <main>
                 <Hero />
-                <Features />
+            
                 <BenefitsSection />
                 <OwnerSection />
-                <VenuesList venues={venues} />
+             
             </main>
             <Footer />
         </div>

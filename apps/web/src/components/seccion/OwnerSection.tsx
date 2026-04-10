@@ -52,8 +52,9 @@ export default function OwnerSection() {
                     <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-gray-950 via-gray-950/40 to-transparent z-10 opacity-90"></div>
                     
                     {/* Imagen de una cancha iluminada y vibrante */}
-                    <img 
-                        src="https://images.unsplash.com/photo-1579548122080-c35fd6820ecb?q=80&w=1200&auto=format&fit=crop" 
+                    <Image 
+                        src="/marketing-1.png" 
+                        fill
                         alt="Cancha de fútbol moderno"
                         className="absolute inset-0 w-full h-full object-cover transform transition-transform duration-700 lg:group-hover:scale-105"
                         loading="lazy"

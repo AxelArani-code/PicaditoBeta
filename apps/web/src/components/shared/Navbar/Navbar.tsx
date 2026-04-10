@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Trophy, Menu, X } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { View } from "@/components/home/HomePageClient";
 
@@ -11,6 +12,7 @@ interface NavbarProps {
 }
 
 export const Navbar = ({ onNavigate }: NavbarProps) => {
+    const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     return (
        <motion.div 
@@ -31,10 +33,30 @@ export const Navbar = ({ onNavigate }: NavbarProps) => {
             </div>
 
             <div className="hidden md:flex items-center gap-8">
-              {['Inicio', 'Como Funciona', 'Beneficios', 'Canchas', 'Nosotros'].map((item) => (
-                <a key={item} href={`#${item.toLowerCase()}`} className="text-sm font-medium hover:text-primary transition-colors text-slate-300">
-                  {item}
-                </a>
+              {[
+                { label: 'Inicio', href: '#inicio' },
+                { label: 'Como Funciona', href: '/how-works', isRoute: true },
+                { label: 'Beneficios', href: '/benefits', isRoute: true },
+                { label: 'Canchas', href: '#canchas' },
+                { label: 'Nosotros', href: '#nosotros' },
+              ].map((item) => (
+                item.isRoute ? (
+                  <button
+                    key={item.label}
+                    onClick={() => router.push(item.href)}
+                    className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
+                  >
+                    {item.label}
+                  </button>
+                ) : (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
+                  >
+                    {item.label}
+                  </a>
+                )
               ))}
             </div>
 
@@ -68,15 +90,25 @@ export const Navbar = ({ onNavigate }: NavbarProps) => {
               className="md:hidden mt-4 mx-4 bg-white/10 backdrop-blur-lg rounded-lg border border-white/25 shadow-2xl"
             >
               <div className="flex flex-col p-4 gap-4">
-                {['Features', 'Torneos', 'Reservas', 'Ranking', 'Pricing'].map((item) => (
-                  <a 
-                    key={item} 
-                    href={`#${item.toLowerCase()}`} 
-                    className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {item}
-                  </a>
+                {['Features', 'Torneos', 'Beneficios', 'Reservas', 'Ranking', 'Pricing'].map((item) => (
+                  item === 'Beneficios' ? (
+                    <button
+                      key={item}
+                      onClick={() => { setIsMenuOpen(false); router.push('/benefits'); }}
+                      className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
+                    >
+                      {item}
+                    </button>
+                  ) : (
+                    <a 
+                      key={item} 
+                      href={`#${item.toLowerCase()}`} 
+                      className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {item}
+                    </a>
+                  )
                 ))}
                 <button
                   onClick={() => { setIsMenuOpen(false); onNavigate('login'); }}
