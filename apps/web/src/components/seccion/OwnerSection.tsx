@@ -34,7 +34,7 @@ const ownerBenefits = [
 
 export default function OwnerSection() {
   return (
-    <section className="relative overflow-hidden bg-gray-950 py-24 md:py-32 border-t border-gray-800">
+    <section id="nosotros" className="relative overflow-hidden scroll-mt-32 bg-gray-950 py-24 md:py-32 border-t border-gray-800">
       
       {/* Decorative ambient lighting */}
       <div className="absolute inset-0 pointer-events-none opacity-20">

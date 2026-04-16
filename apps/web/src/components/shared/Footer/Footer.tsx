@@ -1,10 +1,13 @@
-import { Instagram, Trophy, Twitter } from "lucide-react";
+import { Instagram, Twitter } from "lucide-react";
 import Image from "next/image";
-import { Container, Body } from "../../design-system";
+import Link from "next/link";
+import { publicNavItems } from "@/config/public-navigation";
 
 export const Footer = () => {
+    const platformLinks = publicNavItems.slice(0, 4);
+
     return (
-        <footer className="py-20 px-6 border-t border-white/5 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900  ">
+        <footer id="contacto" className="scroll-mt-32 py-20 px-6 border-t border-white/5 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900  ">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-12">
         <div>
           <div className="flex items-center gap-2 mb-6">
@@ -26,9 +29,11 @@ export const Footer = () => {
           <div className="space-y-4">
             <p className="text-white font-bold text-sm uppercase tracking-widest">Plataforma</p>
             <div className="flex flex-col gap-3 text-sm text-slate-500">
-              <a href="#" className="hover:text-primary transition-colors">Features</a>
-              <a href="#" className="hover:text-primary transition-colors">Pricing</a>
-              <a href="#" className="hover:text-primary transition-colors">Torneos</a>
+              {platformLinks.map((item) => (
+                <Link key={item.label} href={item.href} className="hover:text-primary transition-colors">
+                  {item.label}
+                </Link>
+              ))}
             </div>
           </div>
           <div className="space-y-4">

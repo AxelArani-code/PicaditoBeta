@@ -3,9 +3,10 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/shared/Navbar/Navbar";
 import { Footer } from "@/components/shared/Footer/Footer";
 import { Hero } from "@/components/home/Hero/Hero";
-
 import BenefitsSection from "@/components/seccion/BenefitsSection";
 import OwnerSection from "@/components/seccion/OwnerSection";
+import { Stats } from "@/components/home/Stats/Stats";
+import { Testimony } from "@/components/home/Testimony/Testimony";
 
 export const metadata: Metadata = {
     title: "Picadito - Reservas de fútbol amateur",
@@ -19,11 +20,14 @@ export default async function HomePage() {
         <div className="min-h-screen bg-background text-text-primary">
             <Navbar />
             <main>
-                <Hero />
-            
+                <div id="inicio" className="scroll-mt-32">
+                    <Hero />
+                </div>
+                <Stats />
                 <BenefitsSection />
-                <OwnerSection />
              
+                <OwnerSection />
+                <Testimony />
             </main>
             <Footer />
         </div>

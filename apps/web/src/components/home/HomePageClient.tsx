@@ -66,7 +66,10 @@ export function HomePageClient({ venues }: HomePageClientProps) {
           <motion.div
             key="landing"
           >
-            <Navbar onNavigate={setView} />
+            <Navbar
+              onLoginClick={() => setView("login")}
+              onRegisterClick={() => setView("register")}
+            />
             <main>
               <Hero />
               

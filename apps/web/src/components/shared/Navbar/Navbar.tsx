@@ -1,130 +1,157 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Trophy, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
-import type { View } from "@/components/home/HomePageClient";
+import { publicNavItems } from "@/config/public-navigation";
 
 interface NavbarProps {
-  onNavigate: (view: View) => void;
+  onLoginClick?: () => void;
+  onRegisterClick?: () => void;
 }
 
-export const Navbar = ({ onNavigate }: NavbarProps) => {
-    const router = useRouter();
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    return (
-       <motion.div 
-          initial={{ y: -100 }}
-          animate={{ y: 0 }}
-          className="fixed top-4 left-0 right-0 z-50 px-4"
-        >
-          <nav className="max-w-6xl mx-auto rounded-full px-6 py-1 flex items-center justify-between shadow-2xl border border-white/25 bg-white/10 backdrop-blur-lg">
-            <div className="flex items-center gap-2">
-             <div className="relative h-14 w-14 sm:h-18 sm:w-18 md:h-20 md:w-20 lg:h-14 lg:w-24">
-                        <Image
-                            src="/logo-picadito.png"
-                            alt="PicaDito Logo"
-                            fill
-                            className="object-contain"
-                        />
-                    </div>
-            </div>
+export const Navbar = ({ onLoginClick, onRegisterClick }: NavbarProps) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-            <div className="hidden md:flex items-center gap-8">
-              {[
-                { label: 'Inicio', href: '#inicio' },
-                { label: 'Como Funciona', href: '/how-works', isRoute: true },
-                { label: 'Beneficios', href: '/benefits', isRoute: true },
-                { label: 'Canchas', href: '#canchas' },
-                { label: 'Nosotros', href: '#nosotros' },
-              ].map((item) => (
-                item.isRoute ? (
-                  <button
-                    key={item.label}
-                    onClick={() => router.push(item.href)}
-                    className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
-                  >
-                    {item.label}
-                  </button>
-                ) : (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
-                  >
-                    {item.label}
-                  </a>
-                )
+  return (
+    <motion.div
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      className="fixed top-4 left-0 right-0 z-50 px-4"
+    >
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 sm:gap-4">
+        <Link href="/#inicio" className="flex shrink-0 items-center">
+          <div className="relative h-10 w-28 sm:h-14 sm:w-36">
+            <Image
+              src="/logo-picadito.png"
+              alt="PicaDito Logo"
+              fill
+              priority
+              className="object-contain object-left drop-shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
+            />
+          </div>
+        </Link>
+
+        <nav className="flex flex-none items-center justify-end gap-3 md:flex-1 md:gap-4">
+          <div className="flex min-w-[72px] items-center justify-end rounded-full bg-transparent py-4 shadow-none sm:min-w-[88px] sm:px-4 md:w-full md:max-w-4xl md:justify-center md:border md:border-white/15 md:bg-slate-950/75 md:px-6 md:shadow-[0_18px_60px_rgba(15,23,42,0.45)] md:backdrop-blur-xl">
+            <div className="hidden items-center gap-6 md:flex lg:gap-11">
+              {publicNavItems.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="text-sm font-medium text-slate-300 transition-colors hover:text-primary"
+                >
+                  {item.label}
+                </Link>
               ))}
             </div>
 
-            <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white transition-colors hover:text-primary md:hidden"
+            >
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+
+          <div className="hidden items-center gap-2 md:flex lg:gap-5">
+            {onLoginClick ? (
               <button
-                onClick={() => onNavigate('login')}
-                className="hidden sm:block text-sm font-semibold bg-transparent border border-white/55 text-white hover:bg-primary-hover active:bg-primary-active rounded-full px-5 py-2.5 shadow-sm transition-colors"
+                onClick={onLoginClick}
+                className="inline-flex h-11 w-36 items-center justify-center rounded-full border border-white/55 bg-transparent px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover active:bg-primary-active"
               >
-                Iniciar sesión
+                Iniciar sesion
               </button>
+            ) : (
+              <Link
+                href="/login"
+                className="inline-flex h-11 w-36 items-center justify-center rounded-full border border-white/55 bg-transparent px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover active:bg-primary-active"
+              >
+                Iniciar sesion
+              </Link>
+            )}
+            {onRegisterClick ? (
               <button
-                onClick={() => onNavigate('register')}
-                className="hidden sm:block text-sm font-semibold bg-primary text-black hover:bg-primary-hover active:bg-primary-active rounded-full px-5 py-2.5 shadow-sm transition-colors"
+                onClick={onRegisterClick}
+                className="inline-flex h-11 w-36 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-black shadow-[0_8px_24px_rgba(163,230,53,0.35)] transition-all hover:bg-primary-hover active:bg-primary-active"
               >
                 Registrarte
               </button>
-              <button 
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden p-2 text-white hover:text-primary transition-colors"
+            ) : (
+              <Link
+                href="/register"
+                className="inline-flex h-11 w-36 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-black shadow-[0_8px_24px_rgba(163,230,53,0.35)] transition-all hover:bg-primary-hover active:bg-primary-active"
               >
-                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-            </div>
-          </nav>
+                Registrarte
+              </Link>
+            )}
+          </div>
+        </nav>
+      </div>
 
-          {isMenuOpen && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="md:hidden mt-4 mx-4 bg-white/10 backdrop-blur-lg rounded-lg border border-white/25 shadow-2xl"
-            >
-              <div className="flex flex-col p-4 gap-4">
-                {['Features', 'Torneos', 'Beneficios', 'Reservas', 'Ranking', 'Pricing'].map((item) => (
-                  item === 'Beneficios' ? (
-                    <button
-                      key={item}
-                      onClick={() => { setIsMenuOpen(false); router.push('/benefits'); }}
-                      className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
-                    >
-                      {item}
-                    </button>
-                  ) : (
-                    <a 
-                      key={item} 
-                      href={`#${item.toLowerCase()}`} 
-                      className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      {item}
-                    </a>
-                  )
-                ))}
-                <button
-                  onClick={() => { setIsMenuOpen(false); onNavigate('login'); }}
-                  className="text-sm font-semibold px-4 py-2 bg-transparent border border-white/55 text-white hover:bg-primary-hover active:bg-primary-active rounded-full shadow-sm transition-colors"
+      {isMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="mx-auto mt-4 max-w-7xl md:hidden"
+        >
+          <div className="rounded-3xl border border-white/15 bg-slate-950/90 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+            <div className="flex flex-col gap-4">
+              {publicNavItems.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="text-sm font-medium text-slate-300 transition-colors hover:text-primary"
+                  onClick={() => setIsMenuOpen(false)}
                 >
-                  Iniciar sesión
-                </button>
+                  {item.label}
+                </Link>
+              ))}
+              {onLoginClick ? (
                 <button
-                  onClick={() => { setIsMenuOpen(false); onNavigate('register'); }}
-                  className="bg-primary text-white hover:bg-primary-hover active:bg-primary-active rounded-full px-5 py-2.5 shadow-sm transition-colors"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onLoginClick();
+                  }}
+                  className="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white transition-colors hover:border-primary hover:text-primary"
                 >
-                 Registrase
+                  Iniciar sesion
                 </button>
-              </div>
-            </motion.div>
-          )}
+              ) : (
+                <Link
+                  href="/login"
+                  className="rounded-full border border-white/20 px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:border-primary hover:text-primary"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Iniciar sesion
+                </Link>
+              )}
+              {onRegisterClick ? (
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onRegisterClick();
+                  }}
+                  className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-primary-hover active:bg-primary-active"
+                >
+                  Registrarte
+                </button>
+              ) : (
+                <Link
+                  href="/register"
+                  className="rounded-full bg-primary px-5 py-2.5 text-center text-sm font-semibold text-black transition-colors hover:bg-primary-hover active:bg-primary-active"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Registrarte
+                </Link>
+              )}
+            </div>
+          </div>
         </motion.div>
-    );
+      )}
+    </motion.div>
+  );
 };
