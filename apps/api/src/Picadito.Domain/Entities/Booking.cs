@@ -96,4 +96,16 @@ public class Booking
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Actualiza el estado de la reserva.
+    /// Este método es usado por el repositorio para cambiar el estado
+    /// y disparar los triggers correspondientes en PostgreSQL.
+    /// </summary>
+    /// <param name="newStatus">Nuevo estado de la reserva.</param>
+    public void UpdateStatus(BookingStatus newStatus)
+    {
+        Status = newStatus;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Picadito.Application.Features.Bookings.Commands.CreateBooking;
+using Picadito.Application.Features.Bookings.Commands.ConfirmBooking;
+using Picadito.Application.Features.Bookings.Commands.RejectBooking;
 using Picadito.Application.Features.Bookings.Queries.GetBookings;
 using Picadito.Application.DTOs;
 using ErrorOr;
@@ -16,13 +18,19 @@ public class BookingsController : ControllerBase
 {
     private readonly CreateBookingHandler _createBookingHandler;
     private readonly GetBookingsHandler _getBookingsHandler;
+    private readonly ConfirmBookingHandler _confirmBookingHandler;
+    private readonly RejectBookingHandler _rejectBookingHandler;
 
     public BookingsController(
         CreateBookingHandler createBookingHandler,
-        GetBookingsHandler getBookingsHandler)
+        GetBookingsHandler getBookingsHandler,
+        ConfirmBookingHandler confirmBookingHandler,
+        RejectBookingHandler rejectBookingHandler)
     {
         _createBookingHandler = createBookingHandler;
         _getBookingsHandler = getBookingsHandler;
+        _confirmBookingHandler = confirmBookingHandler;
+        _rejectBookingHandler = rejectBookingHandler;
     }
 
     /// <summary>
@@ -71,6 +79,69 @@ public class BookingsController : ControllerBase
     }
 
     /// <summary>
+    /// Confirma una reserva pendiente.
+    /// Solo puede ser llamado por el propietario del complejo (venue_owner).
+    /// </summary>
+    /// <param name="id">ID de la reserva a confirmar.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>204 No Content en éxito.</returns>
+    /// <remarks>
+    /// Al confirmar la reserva:
+    /// - El trigger 'booking_status_changed' marca el TimeSlot como 'booked'.
+    /// - Se crea automáticamente un Match para el partido.
+    /// - Se envía una notificación al jugador.
+    /// </remarks>
+    [HttpPatch("{id:guid}/confirm")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ConfirmBooking(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var command = new ConfirmBookingCommand { Id = id };
+        var result = await _confirmBookingHandler.Handle(command, cancellationToken);
+
+        return result.Match(
+            _ => NoContent(),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Rechaza una reserva pendiente.
+    /// Solo puede ser llamado por el propietario del complejo (venue_owner).
+    /// </summary>
+    /// <param name="id">ID de la reserva a rechazar.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>204 No Content en éxito.</returns>
+    /// <remarks>
+    /// Al rechazar la reserva:
+    /// - El trigger 'booking_status_changed' marca el TimeSlot como 'available'.
+    /// - Se envía una notificación al jugador indicando el rechazo.
+    /// </remarks>
+    [HttpPatch("{id:guid}/reject")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RejectBooking(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var command = new RejectBookingCommand { Id = id };
+        var result = await _rejectBookingHandler.Handle(command, cancellationToken);
+
+        return result.Match(
+            _ => NoContent(),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
     /// Obtiene una reserva por su ID.
     /// </summary>
     /// <param name="id">ID de la reserva.</param>
@@ -108,6 +179,7 @@ public class BookingsController : ControllerBase
             ErrorType.Validation => StatusCodes.Status400BadRequest,
             ErrorType.NotFound => StatusCodes.Status404NotFound,
             ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+            ErrorType.Forbidden => StatusCodes.Status403Forbidden,
             _ => StatusCodes.Status500InternalServerError,
         };
 

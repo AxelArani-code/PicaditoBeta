@@ -14,6 +14,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Picadito.Application.Features.Bookings.Queries.GetBookings;
+using Picadito.Application.Features.Bookings.Commands.ConfirmBooking;
+using Picadito.Application.Features.Bookings.Commands.RejectBooking;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +46,8 @@ builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
 builder.Services.AddScoped<IPitchRepository, PitchRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
+builder.Services.AddScoped<ConfirmBookingHandler>();
+builder.Services.AddScoped<RejectBookingHandler>();
 builder.Services.AddScoped<GetBookingsHandler>();
 builder.Services.AddScoped<GetAllPitchesHandler>();
 

@@ -26,7 +26,19 @@ public class PitchConfiguration : IEntityTypeConfiguration<Pitch>
         // Mapeo de Enums como string
         builder.Property(e => e.Type)
             .HasColumnName("type")
-            .HasConversion<string>()
+            .HasConversion(
+                // Al guardar en la DB: de Enum a String
+                v => v == PitchType.FiveV5 ? "5v5" :
+                v == PitchType.SevenV7 ? "7v7" :
+                v == PitchType.NineV9 ? "9v9" :
+                v == PitchType.ElevenV11 ? "11v11" : v.ToString(),
+
+                // Al leer de la DB: de String a Enum
+                v => v == "5v5" ? PitchType.FiveV5 :
+                v == "7v7" ? PitchType.SevenV7 :
+                v == "9v9" ? PitchType.NineV9 :
+                v == "11v11" ? PitchType.ElevenV11 : (PitchType)Enum.Parse(typeof(PitchType), v)
+            )
             .IsRequired();
         
         builder.Property(e => e.Surface)
