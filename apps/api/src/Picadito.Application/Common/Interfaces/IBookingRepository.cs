@@ -36,4 +36,12 @@ public interface IBookingRepository
         BookingStatus newStatus,
         Guid ownerId,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Verifica si existe una reserva activa (pendiente o confirmada) para un horario específico.          
+    /// </summary>
+    /// <param name="timeSlotId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<bool> ExistsActiveBookingForSlotAsync(Guid timeSlotId, CancellationToken cancellationToken);
 }

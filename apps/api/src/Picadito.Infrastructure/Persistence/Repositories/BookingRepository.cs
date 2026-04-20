@@ -120,4 +120,13 @@ public class BookingRepository(ApplicationDbContext context) : IBookingRepositor
 
         return Result.Success;
     }
+
+    public async Task<bool> ExistsActiveBookingForSlotAsync(Guid timeSlotId, CancellationToken cancellationToken)
+    {
+        // Buscamos solo reservas que NO sean rechazadas ni canceladas
+        return await context.Bookings
+        .AnyAsync(b => b.TimeSlotId == timeSlotId && 
+                  (b.Status == BookingStatus.pending || b.Status == BookingStatus.confirmed), 
+                  cancellationToken);
+    }
 }

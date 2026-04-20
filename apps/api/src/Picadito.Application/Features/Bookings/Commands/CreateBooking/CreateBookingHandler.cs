@@ -81,6 +81,13 @@ public class CreateBookingHandler(
             return Error.Forbidden(description: "Tu perfil no tiene permisos para crear reservas.");
         }
 
+        // 1. Verificación de integridad: ¿El slot está realmente libre?
+        var isTaken = await bookingRepository.ExistsActiveBookingForSlotAsync(request.TimeSlotId, cancellationToken);
+        if (isTaken)
+        {
+            return DomainErrors.Booking.SlotAlreadyTaken;
+        }
+
         // Mapear de Command a Entidad de Dominio
         var booking = new Booking(
             request.TimeSlotId,
