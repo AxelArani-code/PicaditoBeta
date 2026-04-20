@@ -4,6 +4,7 @@ using Picadito.Domain.Entities;
 using Picadito.Application.Common.Interfaces;
 using Picadito.Application.DTOs;
 using Picadito.Domain.Enums;
+using Picadito.Domain.Errors;
 using Microsoft.EntityFrameworkCore;
 using ErrorOr;
 
@@ -123,10 +124,51 @@ public class BookingRepository(ApplicationDbContext context) : IBookingRepositor
 
     public async Task<bool> ExistsActiveBookingForSlotAsync(Guid timeSlotId, CancellationToken cancellationToken)
     {
-        // Buscamos solo reservas que NO sean rechazadas ni canceladas
         return await context.Bookings
         .AnyAsync(b => b.TimeSlotId == timeSlotId && 
                   (b.Status == BookingStatus.pending || b.Status == BookingStatus.confirmed), 
                   cancellationToken);
+    }
+
+    public async Task<Booking?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await context.Bookings
+            .Include(b => b.Pitch)
+                .ThenInclude(p => p.Venue)
+            .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
+    }
+
+    public async Task<ErrorOr<Success>> CancelAsync(
+        Guid id,
+        Guid ownerId,
+        CancellationToken cancellationToken)
+    {
+        var booking = await context.Bookings
+            .Include(b => b.Pitch)
+                .ThenInclude(p => p.Venue)
+            .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
+
+        if (booking == null)
+        {
+            return DomainErrors.Booking.NotFound;
+        }
+
+        if (booking.Pitch.Venue.OwnerId != ownerId)
+        {
+            return DomainErrors.Booking.Unauthorized;
+        }
+
+        if (booking.Status != BookingStatus.confirmed)
+        {
+            return DomainErrors.Booking.NotConfirmed;
+        }
+
+        booking.UpdateStatus(BookingStatus.cancelled);
+
+        context.Bookings.Update(booking);
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        return Result.Success;
     }
 }

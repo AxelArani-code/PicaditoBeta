@@ -44,4 +44,25 @@ public interface IBookingRepository
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<bool> ExistsActiveBookingForSlotAsync(Guid timeSlotId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Obtiene una reserva por su ID con las relaciones necesarias para verificar propiedad.
+    /// </summary>
+    /// <param name="id">ID de la reserva.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>La reserva con Pitch -> Venue cargados, o null si no existe.</returns>
+    Task<Booking?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Cancela una reserva confirmada.
+    /// Solo el owner del complejo puede cancelar reservas confirmadas.
+    /// </summary>
+    /// <param name="id">ID de la reserva.</param>
+    /// <param name="ownerId">ID del propietario que realiza la acción.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>Success o error de autorización/no encontrado/no confirmada.</returns>
+    Task<ErrorOr<Success>> CancelAsync(
+        Guid id,
+        Guid ownerId,
+        CancellationToken cancellationToken);
 }
