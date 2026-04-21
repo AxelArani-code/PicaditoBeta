@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using Picadito.Domain.Entities;
 using Picadito.Application.Common.Interfaces;
@@ -6,6 +7,7 @@ using Picadito.Application.DTOs;
 using Picadito.Domain.Enums;
 using Picadito.Domain.Errors;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ErrorOr;
 
 namespace Picadito.Infrastructure.Persistence.Repositories;
@@ -13,12 +15,21 @@ namespace Picadito.Infrastructure.Persistence.Repositories;
 /// <summary>
 /// Implementación del repositorio de reservas usando EF Core.
 /// </summary>
-public class BookingRepository(ApplicationDbContext context) : IBookingRepository
+public class BookingRepository : IBookingRepository
 {
+    private readonly ApplicationDbContext _context;
+    private readonly ILogger<BookingRepository> _logger;
+
+    public BookingRepository(ApplicationDbContext context, ILogger<BookingRepository> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
+    
     public async Task AddAsync(Booking booking, CancellationToken cancellationToken)
     {
-        await context.Bookings.AddAsync(booking, cancellationToken);
-        await context.SaveChangesAsync(cancellationToken);
+        await _context.Bookings.AddAsync(booking, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<List<BookingDto>> GetAllAsync(
@@ -27,7 +38,7 @@ public class BookingRepository(ApplicationDbContext context) : IBookingRepositor
         Guid? pitchId,
         CancellationToken cancellationToken)
     {
-        IQueryable<Booking> query = context.Bookings
+        IQueryable<Booking> query = _context.Bookings
             .AsNoTracking()
             .Include(b => b.Pitch)
             .Include(b => b.User);
@@ -80,7 +91,7 @@ public class BookingRepository(ApplicationDbContext context) : IBookingRepositor
         CancellationToken cancellationToken)
     {
         // Cargamos la reserva con su Pitch y Venue para validar propiedad
-        var booking = await context.Bookings
+        var booking = await _context.Bookings
             .Include(b => b.Pitch)
                 .ThenInclude(p => p.Venue)
             .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
@@ -114,17 +125,17 @@ public class BookingRepository(ApplicationDbContext context) : IBookingRepositor
         booking.UpdateStatus(newStatus);
 
         // Marcamos la entidad como modificada para asegurar que se envíen todos los valores
-        context.Bookings.Update(booking);
+        _context.Bookings.Update(booking);
 
         // Guardamos los cambios - EF Core generará el UPDATE SQL con la columna status
-        await context.SaveChangesAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Result.Success;
     }
 
     public async Task<bool> ExistsActiveBookingForSlotAsync(Guid timeSlotId, CancellationToken cancellationToken)
     {
-        return await context.Bookings
+        return await _context.Bookings
         .AnyAsync(b => b.TimeSlotId == timeSlotId && 
                   (b.Status == BookingStatus.pending || b.Status == BookingStatus.confirmed), 
                   cancellationToken);
@@ -132,7 +143,7 @@ public class BookingRepository(ApplicationDbContext context) : IBookingRepositor
 
     public async Task<Booking?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await context.Bookings
+        return await _context.Bookings
             .Include(b => b.Pitch)
                 .ThenInclude(p => p.Venue)
             .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
@@ -143,7 +154,7 @@ public class BookingRepository(ApplicationDbContext context) : IBookingRepositor
         Guid ownerId,
         CancellationToken cancellationToken)
     {
-        var booking = await context.Bookings
+        var booking = await _context.Bookings
             .Include(b => b.Pitch)
                 .ThenInclude(p => p.Venue)
             .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
@@ -165,10 +176,18 @@ public class BookingRepository(ApplicationDbContext context) : IBookingRepositor
 
         booking.UpdateStatus(BookingStatus.cancelled);
 
-        context.Bookings.Update(booking);
+        _context.Bookings.Update(booking);
 
-        await context.SaveChangesAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Result.Success;
     }
+    public async Task<Booking?> GetByIdWithVenueAsync(Guid id, CancellationToken ct)
+    {
+        return await _context.Bookings
+            .Include(b => b.Pitch)
+                .ThenInclude(p => p.Venue)
+            .FirstOrDefaultAsync(b => b.Id == id, ct);
+    }
+
 }

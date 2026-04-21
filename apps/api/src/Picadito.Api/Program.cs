@@ -17,6 +17,7 @@ using Picadito.Application.Features.Bookings.Queries.GetBookings;
 using Picadito.Application.Features.Bookings.Commands.ConfirmBooking;
 using Picadito.Application.Features.Bookings.Commands.RejectBooking;
 using Picadito.Application.Features.Bookings.Commands.CancelBooking;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using Picadito.Domain.Entities;
 using Picadito.Application.Common.Interfaces;
 using FluentValidation;
@@ -7,6 +8,8 @@ using Picadito.Domain.Errors;
 using Picadito.Domain.Enums;
 using ErrorOr;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+
 namespace Picadito.Application.Features.Bookings.Commands.CreateBooking;
 
 public class CreateBookingHandler(
@@ -14,92 +17,127 @@ public class CreateBookingHandler(
     ITimeSlotRepository timeSlotRepository,
     IPitchRepository pitchRepository,
     IValidator<CreateBookingCommand> validator,
-    IHttpContextAccessor httpContextAccessor) 
+    IHttpContextAccessor httpContextAccessor,
+    ILogger<CreateBookingHandler> logger) 
 {
+    private readonly ILogger<CreateBookingHandler> _logger = logger;
+    
     public async Task<ErrorOr<Guid>> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
-    {   
-        // Logica de validacion usando FluentValidation
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
+    {
+        var correlationId = Activity.Current?.Id ?? httpContextAccessor.HttpContext?.TraceIdentifier;
+        
+        using (_logger.BeginScope("CorrelationId: {CorrelationId}, TimeSlotId: {TimeSlotId}", 
+            correlationId, request.TimeSlotId))
         {
-            return validationResult.Errors.ConvertAll(error => 
-                Error.Validation(error.PropertyName, error.ErrorMessage));
-        }
-
-        // Logica de TimeSlot y manejo de errores
-        var timeSlot = await timeSlotRepository.GetByIdAsync(request.TimeSlotId, cancellationToken);
-        if (timeSlot is null) return DomainErrors.Booking.NotFound;
-        if (timeSlot.Status != SlotStatus.available.ToString()) return DomainErrors.Booking.NotAvailable;
-
-        // Logica de JWT y manejo de errores
-        var user = httpContextAccessor.HttpContext?.User;
-
-        // Logica de politica: Un usuario debe estar autenticado para crear una reserva.  
-        var userIdClaim = httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim)) return Error.Unauthorized(description: "Usuario no autenticado"  );
-        var userId = Guid.Parse(userIdClaim);
-
-        // Logica de politica: Un venue_owner solo puede crear reservas para sus propias canchas.
-        var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
-        string? roleName = null;
-
-        // Parsing para extraer el rol
-        if (!string.IsNullOrEmpty(rawRoleClaim))
-        {
-            try
+            _logger.LogInformation("Starting booking creation for TimeSlotId: {TimeSlotId}", request.TimeSlotId);
+            
+            // Logica de validacion usando FluentValidation
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
             {
-                using var jsonDoc = JsonDocument.Parse(rawRoleClaim);
-                if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
+                _logger.LogWarning("Validation failed. Errors: {Errors}", 
+                    string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                return validationResult.Errors.ConvertAll(error => 
+                    Error.Validation(error.PropertyName, error.ErrorMessage));
+            }
+
+            // Logica de TimeSlot y manejo de errores
+            var timeSlot = await timeSlotRepository.GetByIdAsync(request.TimeSlotId, cancellationToken);
+            if (timeSlot is null) 
+            {
+                _logger.LogWarning("Time slot not found. TimeSlotId: {TimeSlotId}", request.TimeSlotId);
+                return DomainErrors.Booking.NotFound;
+            }
+            if (timeSlot.Status != SlotStatus.available.ToString()) 
+            {
+                _logger.LogWarning("Time slot not available. TimeSlotId: {TimeSlotId}, Status: {Status}", 
+                    request.TimeSlotId, timeSlot.Status);
+                return DomainErrors.Booking.NotAvailable;
+            }
+
+            // Logica de JWT y manejo de errores
+            var user = httpContextAccessor.HttpContext?.User;
+
+            // Logica de politica: Un usuario debe estar autenticado para crear una reserva.  
+            var userIdClaim = httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                _logger.LogWarning("User not authenticated");
+                return Error.Unauthorized(description: "Usuario no autenticado"  );
+            }
+            var userId = Guid.Parse(userIdClaim);
+
+            // Logica de politica: Un venue_owner solo puede crear reservas para sus propias canchas.
+            var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
+            string? roleName = null;
+
+            // Parsing para extraer el rol
+            if (!string.IsNullOrEmpty(rawRoleClaim))
+            {
+                try
                 {
-                    roleName = roleElement.GetString();
+                    using var jsonDoc = JsonDocument.Parse(rawRoleClaim);
+                    if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
+                    {
+                        roleName = roleElement.GetString();
+                    }
+                }
+                catch
+                {
+                    _logger.LogWarning("Invalid role format in token");
+                    return Error.Unauthorized(description: "El formato del rol en el token es inválido.");
                 }
             }
-            catch
+
+            if (!Enum.TryParse<UserRole>(roleName, true, out var userRole))
             {
-                return Error.Unauthorized(description: "El formato del rol en el token es inválido.");
+                _logger.LogWarning("Invalid role. Role: {Role}", roleName);
+                return Error.Forbidden(code: "Role.Invalid", description: $"El rol '{roleName}' no es reconocido.");
             }
-        }
 
-        if (!Enum.TryParse<UserRole>(roleName, true, out var userRole))
-        {
-            return Error.Forbidden(code: "Role.Invalid", description: $"El rol '{roleName}' no es reconocido.");
-        }
-
-        // Politica de seguridad segun rol
-        if (userRole == UserRole.venue_owner)
-        {
-            // Si es Dueño, verificamos que la cancha (Pitch) le pertenezca
-            var isOwner = await pitchRepository.IsOwnerAsync(timeSlot.PitchId, userId, cancellationToken);
-            if (!isOwner) 
+            // Politica de seguridad segun rol
+            if (userRole == UserRole.venue_owner)
             {
-                return Error.Forbidden(description: "No podés reservar en canchas que no son tuyas.");
+                // Si es Dueño, verificamos que la cancha (Pitch) le pertenezca
+                var isOwner = await pitchRepository.IsOwnerAsync(timeSlot.PitchId, userId, cancellationToken);
+                if (!isOwner) 
+                {
+                    _logger.LogWarning("El usuario no es dueño de un cancha. UserId: {UserId}, PitchId: {PitchId}", 
+                        userId, timeSlot.PitchId);
+                    return Error.Forbidden(description: "No podés reservar en canchas que no son tuyas.");
+                }
             }
+            else if (userRole != UserRole.player)
+            {
+                // Si no es ni Player ni Owner, bloqueamos por seguridad
+                _logger.LogWarning("User role not authorized. Role: {Role}", userRole);
+                return Error.Forbidden(description: "Tu perfil no tiene permisos para crear reservas.");
+            }
+
+            // 1. Verificación de integridad: ¿El slot está realmente libre?
+            var isTaken = await bookingRepository.ExistsActiveBookingForSlotAsync(request.TimeSlotId, cancellationToken);
+            if (isTaken)
+            {
+                _logger.LogWarning("Slot already taken. TimeSlotId: {TimeSlotId}", request.TimeSlotId);
+                return DomainErrors.Booking.SlotAlreadyTaken;
+            }
+
+            // Mapear de Command a Entidad de Dominio
+            var booking = new Booking(
+                request.TimeSlotId,
+                timeSlot.PitchId,
+                timeSlot.Date,
+                userId,
+                timeSlot.Price);
+
+            // Persistir usando el repositorio (EF Core)
+            await bookingRepository.AddAsync(booking, cancellationToken);
+
+            _logger.LogInformation("Booking created successfully. BookingId: {BookingId}, PitchId: {PitchId}, TimeSlotId: {TimeSlotId}", 
+                booking.Id, timeSlot.PitchId, request.TimeSlotId);
+
+            // Retornar el ID generado
+            return booking.Id;
         }
-        else if (userRole != UserRole.player)
-        {
-            // Si no es ni Player ni Owner, bloqueamos por seguridad
-            return Error.Forbidden(description: "Tu perfil no tiene permisos para crear reservas.");
-        }
-
-        // 1. Verificación de integridad: ¿El slot está realmente libre?
-        var isTaken = await bookingRepository.ExistsActiveBookingForSlotAsync(request.TimeSlotId, cancellationToken);
-        if (isTaken)
-        {
-            return DomainErrors.Booking.SlotAlreadyTaken;
-        }
-
-        // Mapear de Command a Entidad de Dominio
-        var booking = new Booking(
-            request.TimeSlotId,
-            timeSlot.PitchId,
-            timeSlot.Date,
-            userId,
-            timeSlot.Price);
-
-        // Persistir usando el repositorio (EF Core)
-        await bookingRepository.AddAsync(booking, cancellationToken);
-
-        // Retornar el ID generado
-        return booking.Id;
     }
 }

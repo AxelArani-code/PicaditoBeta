@@ -65,4 +65,11 @@ public interface IBookingRepository
         Guid id,
         Guid ownerId,
         CancellationToken cancellationToken);
+    /// <summary>
+    /// Obtiene una reserva por su ID con la información del Venue para validar la propiedad.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<Booking?> GetByIdWithVenueAsync(Guid id, CancellationToken cancellationToken);
 }
