@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Navbar } from "@/components/shared/Navbar/Navbar";
-import { Footer } from "@/components/shared/Footer/Footer";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 import { getVenues } from "@/lib/queries/venues";
 
 export const metadata: Metadata = {

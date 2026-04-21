@@ -2,8 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { Navbar } from '@/components/shared/Navbar/Navbar';
-import { Footer } from '@/components/shared/Footer/Footer';
+import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
 import { Hero } from '@/components/home/Hero/Hero';
 
 import { Stats } from '@/components/home/Stats/Stats';

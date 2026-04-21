@@ -1,6 +1,6 @@
 'use client';
 
-import Benefits from '@/app/(public)/benefits/Benefits';
+import Benefits from '@/components/layout/Benefits';
 
 export default function BenefitsPage() {
   return (

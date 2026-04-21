@@ -1,9 +1,12 @@
 "use client";
 
-import { Navbar } from '@/components/shared/Navbar/Navbar';
+import { Navbar } from '@/components/layout/Navbar';
 import { AnimatePresence, motion } from "framer-motion";
-import { BarChart3, Calendar, CheckCircle2, Trophy, TrendingUp } from "lucide-react";
+import { BarChart3, Calendar, CheckCircle2, Trophy, TrendingUp, Users } from "lucide-react";
 import { useState } from "react";
+import { CTA } from '@/components/home/CTA/CTA';
+import { BenefitsShowcaseSection } from '@/components/shared/BenefitsShowcaseSection/BenefitsShowcaseSection';
+import { Footer } from '@/components/layout/Footer';
 
 export default function Benefits() {
     const [activeTab, setActiveTab] = useState<'owners' | 'players'>('owners');
@@ -309,8 +312,8 @@ export default function Benefits() {
     };
 
     return (
-         
-        <main className="pt-40 pb-20 px-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen">
+         <div>
+            <main className="pt-40 pb-20 px-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen">
             <Navbar  /> 
             {/* Hero Section Headings */}
             <header className="max-w-4xl mx-auto text-center mb-16">
@@ -323,71 +326,94 @@ export default function Benefits() {
                 </p>
             </header>
 
-            {/* Modern Tabbed Interface */}
-            <div className="max-w-md mx-auto mb-16">
-                <div className="flex p-1 bg-slate-800 rounded-full border border-white/5">
-                    <button 
-                        onClick={() => setActiveTab('owners')}
-                        className={`flex-1 py-3 px-6 rounded-full text-sm font-bold transition-all ${activeTab === 'owners' ? 'bg-primary text-on-primary shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
-                    >
-                        Dueños de cancha
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('players')}
-                        className={`flex-1 py-3 px-6 rounded-full text-sm font-medium transition-all ${activeTab === 'players' ? 'bg-primary text-on-primary shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
-                    >
-                        Jugadores
-                    </button>
-                </div>
-            </div>
+                        <BenefitsShowcaseSection
+                                badge="Para Jugadores"
+                                heading="La Experiencia de Juego Definitiva"
+                                supportingText="Todo lo que necesitas para encontrar, reservar y dominar en el campo, todo en la palma de tu mano."
+                            reverse
+                                heroCard={{
+                                        title: 'Reserva en un Instante',
+                                        description: 'Eligir cancha, horario y confirmar tu turno nunca fue tan fácil. Olvidate de las llamadas y los mensajes de texto.',
+                                    imageSrc: 'https://i.pinimg.com/1200x/9c/f3/8d/9cf38ddff55590fa76c816ff243d634c.jpg',
+                                        imageAlt: 'Jugador lanzando un pase durante un partido de fútbol',
+                                }}
+                                infoCardOne={{
+                                        title: 'Ranking local',
+                                        description: 'Compara tu rendimiento y escala posiciones con tus amigos.',
+                                        icon: <Trophy className="w-8 h-8 text-[#1a1a1a]" />,
+                                        className: 'md:col-span-2  bg-[#e8efe5]  h-[450px] rounded-[3rem] p-12 flex flex-col justify-end shadow-2xl shadow-black/5',
+                                        textClassName: 'text-[#1a1a1a]',
+                                }}
+                                infoCardTwo={{
+                                        title: 'Todo en una sola app',
+                                        description: 'Reserva, juego y competi desde un unico lugar.',
+                                        icon: <Users className="w-8 h-8 text-[#1a1a1a]" />,
+                                        className: 'md:col-span-2 bg-[#e8efe5] h-[450px] rounded-[3rem] p-12 flex flex-col justify-end shadow-2xl shadow-black/5',
+                                        textClassName: 'text-[#1a1a1a]',
+                                }}
+                                wideCard={{
+                                        title: 'Seguimiento en vivo',
+                                        description: 'Mira resultados, estadísticas y moomentos clave del partidos.',
+                                        tags: ['Ligas VIP', 'Estadísticas MVP'],
+                                        imageSrc: 'https://i.pinimg.com/736x/32/f5/5b/32f55bac941a4c65f087fa84d88ea706.jpg',
+                                        imageAlt: 'Jugador celebrando un gol con sus compañeros en un partido de fútbol',
+                                        className: 'md:col-span-4 bg-[#5b6a53] h-[450px] rounded-[3rem] relative overflow-hidden flex flex-col justify-end p-12 shadow-2xl shadow-black/5 group',
+                                        textClassName: 'text-white/90',
+                                }}
+                        />
 
-            {/* Benefits Grid */}
-            <AnimatePresence mode="wait">
-                <motion.section 
-                    key={activeTab}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                    className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-32"
-                >
-                    {benefits.map((benefit) => (
-                        <motion.div 
-                            key={benefit.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: benefit.id * 0.1 }}
-                            className="glass-card glow-soft rounded-[24px] p-8 flex flex-col h-full transition-all duration-300 group bg-slate-900/60 backdrop-blur-md border border-white/5 shadow-2xl hover:border-primary/70 hover:ring-2 hover:ring-primary/50 hover:bg-slate-900/70"
-                        >
-                            {renderCard(benefit)}
-                            <h3 className="text-xl font-bold text-on-background mb-3 group-hover:text-primary transition-colors">{benefit.title}</h3>
-                            <p className="text-slate-400 text-sm leading-relaxed group-hover:text-primary/80 transition-colors">{benefit.description}</p>
-                        </motion.div>
-                    ))}
-                </motion.section>
-            </AnimatePresence>
+                            <BenefitsShowcaseSection
+                                badge="Para Complejos"
+                                heading="Gestiona profesional de tus canchas"
+                                supportingText="Organiza reservas, analiza resultados y mejora tus ingresos con herramientas pensadas para dueños"
+                                heroCard={{
+                                    title: 'Control total del negocio',
+                                    description: 'Accede a reportes detalllados, metricas de ingresos y comportamiennto de tus clientes en un solo click.   ',
+                                    imageSrc: 'https://i.pinimg.com/736x/5c/46/c2/5c46c2678a3140016467c76f99a57e25.jpg',
+                                    imageAlt: 'Propietario gestionando las operaciones de un complejo deportivo',
+                                }}
+                                infoCardOne={{
+                                    title: 'Metricas claras',
+                                    description: 'Visualiza ingresos, horarios picos y comportaminento de clientes. ',
+                                    icon: <BarChart3 className="w-8 h-8 text-[#1a1a1a]" />,
+                                    className: 'md:col-span-2 bg-[#e8efe5] h-[450px] rounded-[3rem] p-12 flex flex-col justify-end shadow-2xl shadow-black/5',
+                                    textClassName: 'text-[#1a1a1a]',
+                                }}
+                                infoCardTwo={{
+                                    title: 'Agenda sin errores',
+                                    description: 'Evitar cruces y confirma turnos de forma ordenada.',
+                                    icon: <Calendar className="w-8 h-8 text-[#1a1a1a]" />,
+                                    className: 'md:col-span-2 bg-[#e8efe5] h-[450px] rounded-[3rem] p-12 flex flex-col justify-end shadow-2xl shadow-black/5',
+                                    textClassName: 'text-[#1a1a1a]',
+                                }}
+                                wideCard={{
+                                    title: 'Gestion total del complejo',
+                                    description: 'Contola reservas, clientes y torneos desde un solo panel.',
+                                    tags: ['Reservas 24/7', 'Control Total'],
+                                    imageSrc: 'https://i.pinimg.com/1200x/b5/fd/fc/b5fdfc05c5fcf4e3fd8aebc989c01c39.jpg',
+                                    imageAlt: 'Gestión profesional de instalaciones deportivas con tecnología avanzada',
+                                    className: 'md:col-span-4 bg-[#36565f] h-[450px] rounded-[3rem] relative overflow-hidden flex flex-col justify-end p-12 shadow-2xl shadow-black/5 group',
+                                    textClassName: 'text-white/90',
+                                }}
+                            />
+ 
 
-            {/* Final CTA Block */}
             <section className="max-w-7xl mx-auto">
-                <div className="relative overflow-hidden rounded-[2rem] bg-slate-900 border border-white/5 p-12 md:p-20 text-center">
-                    {/* Decorative background elements */}
-                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-[100px]"></div>
-                    <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-secondary/10 rounded-full blur-[100px]"></div>
-                    <div className="relative z-10">
-                        <h2 className="text-3xl md:text-5xl font-black text-on-background mb-8 tracking-tighter leading-tight">
-                            Empezá a usar la plataforma y llevá tu fútbol <br className="hidden md:block" /> al <span className="text-primary italic">siguiente nivel</span>
-                        </h2>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <button className="bg-primary text-on-primary px-10 py-4 rounded-full font-black text-lg hover:scale-[1.05] active:scale-95 transition-all shadow-xl shadow-primary/20">
-                                Crear mi cancha
-                            </button>
-                            <button className="bg-slate-800 text-on-background px-10 py-4 rounded-full font-bold text-lg hover:bg-slate-700 transition-all">
-                                Ver torneos
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <CTA
+                    title="Empeza a usar Picadito y lleva tu juego"
+                    highlight="al siguiente nivel"
+                    description="Configura tu perfil, reserva canchas y sumate a torneos en minutos con una experiencia simple y profesional."
+                    imageSrc="https://images.unsplash.com/photo-1570498839593-e565b39455fc?auto=format&fit=crop&q=80"
+                    imageAlt="Soccer players celebrating after a match"
+                    bannerText="¿Sos jugador o dueno de cancha? Sumate hoy"
+                    actionLabel={activeTab === 'owners' ? 'Crear mi cancha' : 'Quiero jugar'}
+                    actionHref={activeTab === 'owners' ? '/register?role=venue_owner' : '/register?role=player'}
+                />
             </section>
+         
         </main>
+           <Footer/>
+         </div>
+        
     )
 }
