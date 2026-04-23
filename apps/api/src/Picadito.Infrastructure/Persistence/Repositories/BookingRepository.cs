@@ -19,6 +19,7 @@ public class BookingRepository : IBookingRepository
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<BookingRepository> _logger;
+    private static readonly TimeSpan SlowQueryThreshold = TimeSpan.FromMilliseconds(500);
 
     public BookingRepository(ApplicationDbContext context, ILogger<BookingRepository> logger)
     {
@@ -38,46 +39,75 @@ public class BookingRepository : IBookingRepository
         Guid? pitchId,
         CancellationToken cancellationToken)
     {
-        IQueryable<Booking> query = _context.Bookings
-            .AsNoTracking()
-            .Include(b => b.Pitch)
-            .Include(b => b.User);
-
-        if (!string.IsNullOrEmpty(status))
+        var sw = Stopwatch.StartNew();
+        try
         {
-            query = query.Where(b => b.Status.ToString().ToLower() == status.ToLower());
-        }
+            IQueryable<Booking> query = _context.Bookings
+                .AsNoTracking()
+                .Include(b => b.Pitch)
+                .Include(b => b.User);
 
-        if (!string.IsNullOrEmpty(paymentStatus))
-        {
-            query = query.Where(b => b.PaymentStatus.ToLower() == paymentStatus.ToLower());
-        }
-
-        if (pitchId.HasValue)
-        {
-            query = query.Where(b => b.PitchId == pitchId.Value);
-        }
-
-        var bookings = await query
-            .OrderByDescending(b => b.CreatedAt)
-            .Select(b => new BookingDto
+            if (!string.IsNullOrEmpty(status))
             {
-                Id = b.Id,
-                TimeSlotId = b.TimeSlotId,
-                PitchId = b.PitchId,
-                PitchName = b.Pitch.Name,
-                UserId = b.UserId,
-                UserName = b.User.FullName,
-                Date = b.Date,
-                TotalPrice = b.TotalPrice,
-                Status = b.Status.ToString().ToLower(),
-                PaymentStatus = b.PaymentStatus,
-                CreatedAt = b.CreatedAt,
-                UpdatedAt = b.UpdatedAt
-            })
-            .ToListAsync(cancellationToken);
+                query = query.Where(b => b.Status.ToString().ToLower() == status.ToLower());
+            }
 
-        return bookings;
+            if (!string.IsNullOrEmpty(paymentStatus))
+            {
+                query = query.Where(b => b.PaymentStatus.ToLower() == paymentStatus.ToLower());
+            }
+
+            if (pitchId.HasValue)
+            {
+                query = query.Where(b => b.PitchId == pitchId.Value);
+            }
+
+            var bookings = await query
+                .OrderByDescending(b => b.CreatedAt)
+                .Select(b => new BookingDto
+                {
+                    Id = b.Id,
+                    TimeSlotId = b.TimeSlotId,
+                    PitchId = b.PitchId,
+                    PitchName = b.Pitch.Name,
+                    UserId = b.UserId,
+                    UserName = b.User.FullName,
+                    Date = b.Date,
+                    TotalPrice = b.TotalPrice,
+                    Status = b.Status.ToString().ToLower(),
+                    PaymentStatus = b.PaymentStatus,
+                    CreatedAt = b.CreatedAt,
+                    UpdatedAt = b.UpdatedAt
+                })
+                .ToListAsync(cancellationToken);
+
+            sw.Stop();
+            var elapsedMs = sw.ElapsedMilliseconds;
+
+            if (sw.Elapsed >= SlowQueryThreshold)
+            {
+                _logger.LogWarning(
+                    "[SLOW QUERY] GetAllAsync: ElapsedMs={ElapsedMs}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, Count={Count}",
+                    elapsedMs, status, paymentStatus, pitchId, bookings.Count);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "GetAllAsync completed: ElapsedMs={ElapsedMs}, Count={Count}",
+                    elapsedMs, bookings.Count);
+            }
+
+            return bookings;
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            _logger.LogError(
+                ex,
+                "GetAllAsync error: ElapsedMs={ElapsedMs}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}",
+                sw.ElapsedMilliseconds, status, paymentStatus, pitchId);
+            throw;
+        }
     }
 
     /// <summary>
