@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import { useState } from 'react';
 import { Navbar } from '@/components/shared/Navbar/Navbar';
 import { Footer } from '@/components/shared/Footer/Footer';
@@ -24,7 +24,7 @@ export function HomePageClient({ venues }: HomePageClientProps) {
   const [view, setView] = useState<View>('landing');
 
   // Animation variants for scroll-triggered effects
-  const sectionVariants = {
+  const sectionVariants: Variants = {
     hidden: { opacity: 0, y: 0 },
     visible: { 
       opacity: 1, 
@@ -36,7 +36,7 @@ export function HomePageClient({ venues }: HomePageClientProps) {
     }
   };
 
-  const staggerVariants = {
+  const staggerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -47,7 +47,7 @@ export function HomePageClient({ venues }: HomePageClientProps) {
     }
   };
 
-  const childVariants = {
+  const childVariants: Variants = {
     hidden: { opacity: 0, y: 30, scale: 0.9 },
     visible: { 
       opacity: 1, 

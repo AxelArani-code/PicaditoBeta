@@ -34,29 +34,19 @@ export const Navbar = ({ onNavigate }: NavbarProps) => {
 
             <div className="hidden md:flex items-center gap-8">
               {[
-                { label: 'Inicio', href: '#inicio' },
-                { label: 'Como Funciona', href: '/how-works', isRoute: true },
-                { label: 'Beneficios', href: '/benefits', isRoute: true },
-                { label: 'Canchas', href: '#canchas' },
-                { label: 'Nosotros', href: '#nosotros' },
+                { label: 'Inicio', href: '/' },
+                { label: 'Como Funciona', href: '/how-works' },
+                { label: 'Beneficios', href: '/benefits' },
+                { label: 'Canchas', href: '/#canchas' },
+                { label: 'Nosotros', href: '/nosotros' },
               ].map((item) => (
-                item.isRoute ? (
-                  <button
-                    key={item.label}
-                    onClick={() => router.push(item.href)}
-                    className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
-                  >
-                    {item.label}
-                  </button>
-                ) : (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
-                  >
-                    {item.label}
-                  </a>
-                )
+                <button
+                  key={item.label}
+                  onClick={() => router.push(item.href)}
+                  className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
+                >
+                  {item.label}
+                </button>
               ))}
             </div>
 
@@ -90,25 +80,20 @@ export const Navbar = ({ onNavigate }: NavbarProps) => {
               className="md:hidden mt-4 mx-4 bg-white/10 backdrop-blur-lg rounded-lg border border-white/25 shadow-2xl"
             >
               <div className="flex flex-col p-4 gap-4">
-                {['Features', 'Torneos', 'Beneficios', 'Reservas', 'Ranking', 'Pricing'].map((item) => (
-                  item === 'Beneficios' ? (
-                    <button
-                      key={item}
-                      onClick={() => { setIsMenuOpen(false); router.push('/benefits'); }}
-                      className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
-                    >
-                      {item}
-                    </button>
-                  ) : (
-                    <a 
-                      key={item} 
-                      href={`#${item.toLowerCase()}`} 
-                      className="text-sm font-medium hover:text-primary transition-colors text-slate-300"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      {item}
-                    </a>
-                  )
+                {[
+                  { label: 'Inicio', href: '/' },
+                  { label: 'Como Funciona', href: '/how-works' },
+                  { label: 'Beneficios', href: '/benefits' },
+                  { label: 'Canchas', href: '/#canchas' },
+                  { label: 'Nosotros', href: '/nosotros' },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={() => { setIsMenuOpen(false); router.push(item.href); }}
+                    className="text-sm font-medium hover:text-primary transition-colors text-slate-300 text-left"
+                  >
+                    {item.label}
+                  </button>
                 ))}
                 <button
                   onClick={() => { setIsMenuOpen(false); onNavigate('login'); }}
