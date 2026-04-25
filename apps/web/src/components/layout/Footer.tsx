@@ -1,13 +1,19 @@
+"use client";
+
+import { useState } from "react";
 import { Instagram, Twitter } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { publicNavItems } from "@/config/public-navigation";
+import { Modal } from "@/components/layout/Modal";
 
 export const Footer = () => {
+    const [isTermsOpen, setIsTermsOpen] = useState(false);
     const platformLinks = publicNavItems.slice(0, 4);
 
     return (
-        <footer id="contacto" className="scroll-mt-32 py-20 px-6 border-t border-white/5 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900  ">
+        <>
+        <footer  className="scroll-mt-32 py-20 px-6 border-t border-white/5 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900  ">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-12">
         <div>
           <div className="flex items-center gap-2 mb-6">
@@ -39,8 +45,8 @@ export const Footer = () => {
           <div className="space-y-4">
             <p className="text-white font-bold text-sm uppercase tracking-widest">Legal</p>
             <div className="flex flex-col gap-3 text-sm text-slate-500">
-              <a href="#" className="hover:text-primary transition-colors">Privacidad</a>
-              <a href="#" className="hover:text-primary transition-colors">Términos</a>
+              <button onClick={() => setIsTermsOpen(true)} className="hover:text-primary transition-colors text-left">Privacidad</button>
+              <button onClick={() => setIsTermsOpen(true)} className="hover:text-primary transition-colors text-left">Términos</button>
             </div>
           </div>
           <div className="space-y-4">
@@ -62,5 +68,8 @@ export const Footer = () => {
         </div>
       </div>
     </footer>
+
+      <Modal isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
+        </>
     );
 };

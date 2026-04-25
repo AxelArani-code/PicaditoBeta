@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { View } from '@/components/home/HomePageClient';
-import { ArrowRight, Lock, Mail, User } from 'lucide-react';
+import { ArrowRight, Building2, Lock, Mail, User } from 'lucide-react';
 import Image from 'next/image';
 import { Card } from '@/components/design-system/Card';
+import { Modal } from "@/components/layout/Modal";
 
 
 interface RegisterProps {
@@ -17,6 +18,8 @@ export default function RegisterPage({ onNavigate }: RegisterProps) {
     const router = useRouter();
     const [step, setStep] = useState<1 | 2>(1);
     const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
     const [form, setForm] = useState({
         email: "",
         password: "",
@@ -95,52 +98,85 @@ export default function RegisterPage({ onNavigate }: RegisterProps) {
 
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black mb-2 sm:mb-3">Crea tu cuenta</h1>
           <p className="text-xs sm:text-sm md:text-base text-text-secondary mb-8 sm:mb-10 leading-relaxed">Registrate y empezá a gestionar tu cancha como un pro.</p>
+      <form className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Full Name</label>
+              <input 
+                type="text" 
+                placeholder="John Doe"
+                className="w-full bg-slate-900/50 border border-slate-700 rounded-lg sm:rounded-2xl py-3 sm:py-4 pl-10 sm:pl-12 pr-3 sm:pr-4 text-sm sm:text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+              />
+            </div>
 
-          <form className="space-y-4 sm:space-y-5">
-            <div>
-              <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">Nombre completo</label>
-              <div className="relative mt-1.5 sm:mt-2">
-                <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Nombre Apellido"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Email Address</label>
+                <input 
+                  type="email" 
+                  placeholder="email@example.com"
+                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg sm:rounded-2xl py-3 sm:py-4 pl-10 sm:pl-12 pr-3 sm:pr-4 text-sm sm:text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Phone Number</label>
+                <input 
+                  type="tel" 
+                  placeholder="+54 9 11..."
                   className="w-full bg-slate-900/50 border border-slate-700 rounded-lg sm:rounded-2xl py-3 sm:py-4 pl-10 sm:pl-12 pr-3 sm:pr-4 text-sm sm:text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">Email Address</label>
-              <div className="relative mt-1.5 sm:mt-2">
-                <Mail className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
-                <input
-                  type="email"
-                  placeholder="nombre@ejemplo.com"
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Complex Name (Nombre del complejo)</label>
+              <div className="relative">
+                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                <input 
+                  type="text" 
+                  placeholder="Estadio Monumental"
                   className="w-full bg-slate-900/50 border border-slate-700 rounded-lg sm:rounded-2xl py-3 sm:py-4 pl-10 sm:pl-12 pr-3 sm:pr-4 text-sm sm:text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">Password</label>
-              <div className="relative mt-1.5 sm:mt-2">
-                <Lock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
-                <input
-                  type="password"
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Create Password</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                <input 
+                  type="password" 
                   placeholder="••••••••"
                   className="w-full bg-slate-900/50 border border-slate-700 rounded-lg sm:rounded-2xl py-3 sm:py-4 pl-10 sm:pl-12 pr-3 sm:pr-4 text-sm sm:text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
                 />
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="w-full py-3 sm:py-4 text-base sm:text-lg font-bold rounded-full bg-primary text-slate-950 hover:bg-primary-hover active:bg-primary-active transition-shadow shadow-lg"
+            <div className="flex items-start gap-3 py-2">
+              <input 
+                type="checkbox" 
+                id="terms"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-1 w-5 h-5 rounded border-white/10 bg-accent-dark/30 text-primary focus:ring-0 cursor-pointer" 
+              />
+              <label htmlFor="terms" className="text-slate-400 text-sm leading-tight cursor-pointer">
+                Acepto los <button type="button" onClick={() => setIsTermsOpen(true)} className="text-primary font-bold hover:underline">términos y condiciones</button> de uso del software Picadito Stadium.
+              </label>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={!acceptedTerms}
+              className={`w-full py-4 text-lg font-black rounded-2xl transition-all flex items-center justify-center gap-2 ${
+                acceptedTerms 
+                ? 'bg-primary text-[#1a1a1a] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95' 
+                : 'bg-white/5 text-slate-600 cursor-not-allowed opacity-50'
+              }`}
             >
-              Crear cuenta <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 inline-block ml-2" />
+              Crear mi cuenta
             </button>
           </form>
-
+          
           <p className="mt-8 sm:mt-10 text-center text-slate-300 text-xs sm:text-sm">
             Ya tenés cuenta?{' '}
             <button onClick={() => onNavigate('login')} className="text-primary font-bold hover:underline">
@@ -155,6 +191,8 @@ export default function RegisterPage({ onNavigate }: RegisterProps) {
           <a href="#" className="hover:text-slate-300">Español (AR)</a>
         </div>
       </div>
+
+      <Modal isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
     </div>
     );
 }

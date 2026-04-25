@@ -10,11 +10,21 @@ import Image from 'next/image';
 import { Card } from '@/components/design-system/Card';
 
 interface LoginProps {
-  onNavigate: (view: View) => void;
+  onNavigate?: (view: View) => void;
 }
 
 export default function LoginPage({ onNavigate }: LoginProps) {
     const router = useRouter();
+
+    const navigate = (view: View) => {
+        if (onNavigate) {
+            onNavigate(view);
+        } else if (view === 'register') {
+            router.push('/register');
+        } else {
+            router.push('/');
+        }
+    };
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -63,7 +73,7 @@ export default function LoginPage({ onNavigate }: LoginProps) {
 
       <div className="flex-1 flex flex-col justify-between p-4 sm:p-6 md:p-8 lg:p-12 xl:p-24 bg-slate-900/90">
         <Card className="max-w-md mx-auto w-full p-6 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg" shadow="lg" padding="lg">
-          <div className="flex items-center mb-8 sm:mb-10 cursor-pointer" onClick={() => onNavigate('landing')}>
+          <div className="flex items-center mb-8 sm:mb-10 cursor-pointer" onClick={() => navigate('landing')}>
             <Image
               src="/logo-picadito.png"
               alt="Picadito Logo"
@@ -121,7 +131,7 @@ export default function LoginPage({ onNavigate }: LoginProps) {
 
           <p className="mt-8 sm:mt-10 text-center text-slate-300 text-xs sm:text-sm">
             No tenés cuenta?{' '}
-            <button onClick={() => onNavigate('register')} className="text-primary font-bold hover:underline">
+            <button onClick={() => navigate('register')} className="text-primary font-bold hover:underline">
               Registrate
             </button>
           </p>

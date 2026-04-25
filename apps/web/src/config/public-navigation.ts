@@ -9,5 +9,5 @@ export const publicNavItems: PublicNavItem[] = [
   { label: "Beneficios", href: "/benefits" },
   { label: "Canchas", href: "/canchas" },
   { label: "Nosotros", href: "/#nosotros" },
-  { label: "Contacto", href: "/#contacto" },
+  { label: "Contacto", href: "/contact" },
 ];
