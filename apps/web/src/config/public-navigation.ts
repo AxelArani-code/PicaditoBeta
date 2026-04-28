@@ -8,6 +8,6 @@ export const publicNavItems: PublicNavItem[] = [
   { label: "Como Funciona", href: "/how-works" },
   { label: "Beneficios", href: "/benefits" },
   { label: "Canchas", href: "/canchas" },
-  { label: "Nosotros", href: "/#nosotros" },
+  { label: "Nosotros", href: "/nosotros" },
   { label: "Contacto", href: "/contact" },
 ];

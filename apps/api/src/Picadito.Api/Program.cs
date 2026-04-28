@@ -6,6 +6,7 @@ using Picadito.Domain.Enums;
 using Picadito.Infrastructure.Persistence.Repositories;
 using Picadito.Infrastructure.Persistence;
 using Picadito.Application.Features.Bookings.Commands.CreateBooking;
+using Picadito.Application.Features.Pitches.Queries.GetAllPitches;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -23,6 +24,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
 dataSourceBuilder.MapEnum<BookingStatus>("booking_status");
+dataSourceBuilder.MapEnum<SlotStatus>("slot_status");
 var dataSource = dataSourceBuilder.Build();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -41,6 +43,7 @@ builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
 builder.Services.AddScoped<IPitchRepository, PitchRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
+builder.Services.AddScoped<GetAllPitchesHandler>();
 
 // Validaciones
 builder.Services.AddValidatorsFromAssemblyContaining<CreateBookingCommandValidator>();

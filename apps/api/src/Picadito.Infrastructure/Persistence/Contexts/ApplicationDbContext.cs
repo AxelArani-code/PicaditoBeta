@@ -72,11 +72,40 @@ public class ApplicationDbContext : DbContext
         entity.Property(e => e.Id).HasColumnName("id");
         entity.Property(e => e.Name).HasColumnName("name");
         entity.Property(e => e.VenueId).HasColumnName("venue_id");
+        
+        // Mapeo del enum Type como string (5v5, 7v7, 9v9, 11v11)
+        entity.Property(e => e.Type)
+            .HasColumnName("type")
+            .HasConversion<string>();
+        
+        // Mapeo del enum Surface como string (cesped_natural, sintetico, cemento, parquet)
+        entity.Property(e => e.Surface)
+            .HasColumnName("surface")
+            .HasConversion<string>();
+        
+        entity.Property(e => e.PricePerHour)
+            .HasColumnName("price_per_hour")
+            .HasPrecision(10, 2);
+        
+        entity.Property(e => e.IsActive)
+            .HasColumnName("is_active");
+        
+        entity.Property(e => e.CreatedAt)
+            .HasColumnName("created_at");
+        
+        entity.Property(e => e.UpdatedAt)
+            .HasColumnName("updated_at");
+        
+        entity.Property(e => e.DeletedAt)
+            .HasColumnName("deleted_at");
 
         // Configuración de la relación con Venue
         entity.HasOne(p => p.Venue)
               .WithMany(v => v.Pitches)
               .HasForeignKey(p => p.VenueId);
+        
+        // Filtro global: solo canchas no eliminadas
+        entity.HasQueryFilter(p => p.DeletedAt == null);
     });
 
     // Mapeo de la tabla existente VENUES
