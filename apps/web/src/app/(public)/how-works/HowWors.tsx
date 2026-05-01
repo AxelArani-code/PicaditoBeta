@@ -8,30 +8,30 @@ import Link from "next/link";
 
 export default function HowWorks() {
   return (
-    <div>
+    <div className="overflow-x-clip">
        <Navbar/>
-       <div className="min-h-screen bg-[#192230] text-[#f1f5f9] font-sans selection:bg-[#22c55e] selection:text-[#f1f5f9] tech-grid">
+       <div className="min-h-screen overflow-x-clip bg-[#192230] text-[#f1f5f9] font-sans selection:bg-[#22c55e] selection:text-[#f1f5f9] tech-grid">
      
-      <main className="pt-40 pb-32 px-8 relative">
+      <main className="relative px-4 pb-20 pt-24 sm:px-6 sm:pt-28 md:px-8 md:pb-24 md:pt-32 lg:pb-32 lg:pt-40">
        
-        <div className="absolute top-0 right-0 w-[1000px] h-[1000px] stadium-glow opacity-40 -z-10 translate-x-1/4 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] stadium-glow opacity-20 -z-10 -translate-x-1/4 translate-y-1/4"></div>
+        <div className="absolute right-0 top-0 h-[420px] w-[420px] -translate-y-1/3 translate-x-1/4 stadium-glow opacity-40 -z-10 sm:h-[640px] sm:w-[640px] md:h-[820px] md:w-[820px] lg:h-[1000px] lg:w-[1000px]"></div>
+        <div className="absolute bottom-0 left-0 h-[360px] w-[360px] translate-y-1/4 -translate-x-1/4 stadium-glow opacity-20 -z-10 sm:h-[520px] sm:w-[520px] md:h-[680px] md:w-[680px] lg:h-[800px] lg:w-[800px]"></div>
         <div className="max-w-7xl mx-auto">
            
-          <div className="max-w-3xl mb-24">
+          <div className="mb-14 max-w-3xl sm:mb-16 md:mb-20 lg:mb-24">
             <div className="flex items-center space-x-3 mb-6">
               <div className="h-px w-8 bg-[#22c55e]/50"></div>
               <span className="text-[#22c55e] font-bold text-xs tracking-[0.2em] uppercase">Metodología Picadito</span>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1] mb-8">
-              Toda tu operación en <span className="text-[#22c55e]">piloto automático.</span>
-            </h1>
-            <p className="text-[#94a3b8] text-xl leading-relaxed font-light">
+              <h1 className="mb-6 text-4xl font-black tracking-tight leading-[1.05] sm:text-5xl md:mb-8 md:text-6xl lg:text-7xl">
+                Toda tu operación en <span className="text-[#22c55e]">piloto automático.</span>
+              </h1>
+            <p className="text-base leading-relaxed font-light text-[#94a3b8] sm:text-lg md:text-xl">
               Diseñamos una arquitectura intuitiva que elimina la fricción administrativa, permitiéndote escalar tu complejo deportivo con precisión técnica.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+          <div className="grid grid-cols-1 items-start gap-8 md:gap-10 lg:grid-cols-12 lg:gap-12">
             <div className="lg:col-span-4 space-y-4">
               <div className="p-6 rounded-xl border border-white/5 bg-[#334155]/30 hover:bg-[#334155]/50 transition-all cursor-default group step-active-glow">
                 <div className="flex items-center justify-between mb-4">
@@ -67,33 +67,33 @@ export default function HowWorks() {
               </div>
             </div>
 
-            <div className="lg:col-span-8 relative">
+            <div className="relative min-w-0 lg:col-span-8">
               <div className="glass-panel rounded-2xl overflow-hidden p-1 bg-white/5">
-                <div className="bg-[#090d14]/80 rounded-[1.25rem] overflow-hidden flex flex-col h-[700px]">
-                  <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/2 space-x-4">
-                    <div className="flex items-center space-x-6">
+                <div className="bg-[#090d14]/80 rounded-[1.25rem] overflow-hidden flex min-h-[560px] flex-col md:h-[700px]">
+                  <div className="flex flex-col gap-3 border-b border-white/5 bg-white/2 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-6">
                       <div className="flex items-center space-x-2">
                         <div className="w-2.5 h-2.5 rounded-full bg-red-500/40"></div>
                         <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/40"></div>
                         <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e]/40"></div>
                       </div>
-                      <div className="h-4 w-px bg-white/10"></div>
-                      <div className="flex space-x-4">
+                      <div className="hidden h-4 w-px bg-white/10 sm:block"></div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-2">
                         <div className="text-[10px] font-bold text-[#22c55e] tracking-widest uppercase border-b-2 border-[#22c55e] pb-4 -mb-4">Reservas</div>
                         <div className="text-[10px] font-bold text-[#94a3b8] tracking-widest uppercase hover:text-[#f1f5f9] cursor-pointer">Torneos</div>
                         <div className="text-[10px] font-bold text-[#94a3b8] tracking-widest uppercase hover:text-[#f1f5f9] cursor-pointer">Clientes</div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="px-3 py-1 bg-white/5 rounded text-[10px] text-[#94a3b8] font-medium">14 de Octubre, 2024</div>
+                    <div className="flex items-center justify-between gap-3 sm:justify-start sm:space-x-4">
+                      <div className="hidden rounded bg-white/5 px-3 py-1 text-[10px] font-medium text-[#94a3b8] sm:block">14 de Octubre, 2024</div>
                       <div className="w-8 h-8 rounded-full bg-[#22c55e]/20 border border-[#22c55e]/40 flex items-center justify-center">
                         <span className="material-symbols-outlined text-sm text-[#22c55e]">person</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex-1 p-6 grid grid-cols-12 gap-6 overflow-hidden">
-                    <div className="col-span-8 flex flex-col space-y-6">
+                  <div className="grid flex-1 grid-cols-1 gap-6 overflow-hidden p-4 sm:p-5 md:grid-cols-12 md:p-6">
+                    <div className="flex flex-col space-y-6 md:col-span-8">
                       <div className="flex items-center justify-between">
                         <div>
                           <h4 className="text-lg font-bold">Gestión de Cancha 1</h4>
@@ -108,7 +108,7 @@ export default function HowWorks() {
                         <div className="grid grid-cols-1 gap-1 h-full relative">
                           <div className="flex h-12 items-center border-b border-white/5 opacity-30 text-[10px] font-mono">18:00</div>
                           <div className="flex h-20 items-center border-b border-white/5 group relative">
-                            <span className="absolute left-0 -translate-x-full pr-2 text-[10px] font-mono opacity-30">19:00</span>
+                            <span className="absolute left-0 -translate-x-full pr-2 text-[10px] font-mono opacity-30 hidden md:block">19:00</span>
                             <div className="w-full bg-[#22c55e]/20 border border-[#22c55e]/40 rounded-lg p-3 flex justify-between items-start group/card cursor-grab active:cursor-grabbing hover:bg-[#22c55e]/30 transition-colors">
                               <div>
                                 <div className="flex items-center space-x-2 mb-1">
@@ -130,7 +130,7 @@ export default function HowWorks() {
                             </div>
                           </div>
                           <div className="flex h-20 items-center border-b border-white/5 relative">
-                            <span className="absolute left-0 -translate-x-full pr-2 text-[10px] font-mono opacity-30">20:00</span>
+                            <span className="absolute left-0 -translate-x-full pr-2 text-[10px] font-mono opacity-30 hidden md:block">20:00</span>
                             <div className="w-full border-2 border-dashed border-white/5 rounded-lg flex items-center justify-center group cursor-pointer hover:border-[#22c55e]/20 transition-all">
                               <span className="text-[10px] font-bold text-[#94a3b8] group-hover:text-[#22c55e] transition-colors">+ AGREGAR TURNO</span>
                             </div>
@@ -139,7 +139,7 @@ export default function HowWorks() {
                         </div>
                       </div>
                     </div>
-                    <div className="col-span-4 space-y-6">
+                    <div className="space-y-6 md:col-span-4">
                       <div className="bg-[#212b3c]/80 border border-white/5 rounded-xl p-4">
                         <div className="flex items-center justify-between mb-4">
                           <span className="text-[10px] font-black tracking-widest text-[#94a3b8] uppercase">Fixture Vivo</span>

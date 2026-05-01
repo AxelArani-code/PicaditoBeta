@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { CheckCircle2, Mail, Phone, Send, Zap } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
@@ -9,17 +8,17 @@ import { Navbar } from "@/components/layout/Navbar";
 
 export default function ContactPage() {
     return (
-    <div>
+    <div className="overflow-x-clip bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
         <Navbar/>
-        <div className="pt-44 pb-24 px-6 relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen">
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start max-w-7xl mx-auto">
+        <div className="relative min-h-screen overflow-x-clip px-4 pb-20 pt-24 sm:px-6 sm:pt-28 md:px-8 md:pb-24 md:pt-32 lg:pb-32 lg:pt-40">
+            <section className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-8 md:gap-10 lg:grid-cols-2 lg:gap-16">
         {/* Left Side: Content */}
-        <div className="space-y-12">
-          <div className="space-y-6">
+        <div className="space-y-8 sm:space-y-10 md:space-y-12">
+          <div className="space-y-5 sm:space-y-6">
             <motion.h1 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-5xl font-black tracking-tight text-[#ffffff] leading-tight"
+              className="text-4xl font-black leading-[1.05] tracking-tight text-[#ffffff] sm:text-5xl md:text-6xl"
             >
               ¿Hablamos?
             </motion.h1>
@@ -27,7 +26,7 @@ export default function ContactPage() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-xl text-slate-400 max-w-lg leading-relaxed"
+              className="max-w-lg text-base leading-relaxed text-slate-400 sm:text-lg md:text-xl"
             >
               Estamos construyendo una mejor forma de organizar el fútbol amateur. Si tienes dudas, propuestas o simplemente quieres decir hola, estamos listos.
             </motion.p>
@@ -38,11 +37,11 @@ export default function ContactPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-[#1f2d42]/95 p-8 rounded-[2rem] space-y-4 shadow-xl shadow-black/30 border border-[#2f415c]"
+            className="space-y-4 rounded-[2rem] border border-[#2f415c] bg-[#1f2d42]/95 p-6 shadow-xl shadow-black/30 sm:p-8"
           >
             <div className="flex items-center gap-3 text-primary">
               <CheckCircle2 className="w-6 h-6" />
-              <h3 className="text-xl font-bold text-slate-100">Nuestro compromiso</h3>
+              <h3 className="text-lg font-bold text-slate-100 sm:text-xl">Nuestro compromiso</h3>
             </div>
             <p className="text-slate-300 leading-relaxed">
               Priorizamos la fluidez de tus torneos. Respondemos a todas las consultas en menos de 24 horas con soluciones reales de futbolistas para futbolistas.
@@ -60,13 +59,13 @@ export default function ContactPage() {
           </motion.div>
 
           {/* Contact Indicators */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <motion.a 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
               href="mailto:hola@picadito.com"
-              className="flex items-center gap-4 p-6 bg-[#1f2d42]/95 border border-[#2f415c] rounded-[2rem] hover:translate-x-1 transition-all duration-300 group shadow-lg shadow-black/20"
+              className="group flex items-center gap-4 rounded-[2rem] border border-[#2f415c] bg-[#1f2d42]/95 p-5 shadow-lg shadow-black/20 transition-all duration-300 hover:translate-x-1 sm:p-6"
             >
               <div className="w-12 h-12 flex items-center justify-center rounded-full bg-[#162235] text-primary group-hover:bg-primary group-hover:text-[#0a1420] transition-colors">
                 <Mail className="w-5 h-5" />
@@ -81,7 +80,7 @@ export default function ContactPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4 }}
               href="#"
-              className="flex items-center gap-4 p-6 bg-[#1f2d42]/95 border border-[#2f415c] rounded-[2rem] hover:translate-x-1 transition-all duration-300 group shadow-lg shadow-black/20"
+              className="group flex items-center gap-4 rounded-[2rem] border border-[#2f415c] bg-[#1f2d42]/95 p-5 shadow-lg shadow-black/20 transition-all duration-300 hover:translate-x-1 sm:p-6"
             >
               <div className="w-12 h-12 flex items-center justify-center rounded-full bg-[#162235] text-primary group-hover:bg-[#25D366] group-hover:text-[#0a1420] transition-colors">
                 <Phone className="w-5 h-5" />
@@ -99,9 +98,9 @@ export default function ContactPage() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-[#1f2d42]/95 p-10 rounded-[3rem] shadow-2xl shadow-black/30 border border-[#2f415c]"
+          className="rounded-[2rem] border border-[#2f415c] bg-[#1f2d42]/95 p-6 shadow-2xl shadow-black/30 sm:rounded-[2.5rem] sm:p-8 md:rounded-[3rem] md:p-10"
         >
-          <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-6 sm:space-y-8" onSubmit={(e) => e.preventDefault()}>
             <div className="space-y-3">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">Nombre completo</label>
               <input 
@@ -127,7 +126,7 @@ export default function ContactPage() {
               ></textarea>
             </div>
             <button 
-              className="w-full bg-primary text-[#0a1420] font-black py-6 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/30 flex items-center justify-center gap-3 text-lg"
+              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-primary py-4 text-base font-black text-[#0a1420] shadow-xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95 sm:py-5 sm:text-lg md:py-6"
               type="submit"
             >
               <span>Enviar mensaje</span>
@@ -136,7 +135,7 @@ export default function ContactPage() {
           </form>
         </motion.div>
       </section>
-      <div  className="grid gap-16 items-start max-w-7xl mx-auto">
+      <div  className="mx-auto grid max-w-7xl items-start gap-10 px-0 pt-10 sm:gap-12 md:gap-16 md:pt-14">
    <CTA 
     title="¿Listo"
                     highlight="para empezar?"

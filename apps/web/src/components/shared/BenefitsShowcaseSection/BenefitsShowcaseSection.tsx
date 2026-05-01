@@ -53,22 +53,22 @@ export function BenefitsShowcaseSection({
   const wideImageLayout = wideCard.imageLayout ?? "background";
 
   return (
-    <section className="py-24  max-w-7xl mx-auto border-b border-black/5">
-      <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+    <section className="mx-auto w-full max-w-7xl border-b border-black/5 px-4 py-14 sm:px-6 sm:py-16 md:py-24">
+      <div className="mb-10 flex flex-col gap-6 md:mb-16 md:flex-row md:items-end md:justify-between">
         <div className="max-w-xl">
           <span className="text-primary font-bold tracking-[0.3em] uppercase text-xs mb-4 block">{badge}</span>
-          <h2 className="text-4xl md:text-6xl font-black text-[#ffffff] tracking-tight leading-none">{heading}</h2>
+          <h2 className="text-3xl font-black leading-[0.95] tracking-tight text-[#ffffff] sm:text-5xl md:text-6xl">{heading}</h2>
         </div>
-        <p className="text-slate-300 text-lg max-w-sm">{supportingText}</p>
+        <p className="max-w-md text-base leading-relaxed text-slate-300 sm:text-lg">{supportingText}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className={
-            'md:col-span-4 relative h-[450px] rounded-[3rem] overflow-hidden group shadow-2xl shadow-black/5 ' +
+            'group relative min-h-[320px] overflow-hidden rounded-[2rem] shadow-2xl shadow-black/5 sm:min-h-[420px] md:col-span-4 md:min-h-[450px] md:rounded-[3rem] ' +
             (reverse ? 'md:order-2' : 'md:order-1')
           }
         >
@@ -79,9 +79,9 @@ export function BenefitsShowcaseSection({
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-          <div className="absolute bottom-12 left-12 right-12">
-            <h3 className="text-4xl font-bold text-white mb-4">{heroCard.title}</h3>
-            <p className="text-white/80 text-lg max-w-md leading-relaxed">{heroCard.description}</p>
+          <div className="absolute bottom-6 left-6 right-6 sm:bottom-8 sm:left-8 sm:right-8 md:bottom-12 md:left-12 md:right-12">
+            <h3 className="mb-3 text-2xl font-bold leading-tight text-white sm:mb-4 sm:text-3xl md:text-4xl">{heroCard.title}</h3>
+            <p className="max-w-md text-sm leading-relaxed text-white/85 sm:text-base md:text-lg">{heroCard.description}</p>
           </div>
         </motion.div>
 
@@ -90,12 +90,16 @@ export function BenefitsShowcaseSection({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
-          className={infoCardOne.className + ' ' + (reverse ? 'md:order-1' : 'md:order-2')}
+          className={
+            infoCardOne.className +
+            ' !relative !overflow-hidden !rounded-[2rem] !p-6 !h-auto !min-h-[260px] sm:!rounded-[2.5rem] sm:!p-8 sm:!min-h-[320px] md:!rounded-[3rem] md:!p-10 md:!min-h-[450px] !flex !flex-col !justify-end ' +
+            (reverse ? 'md:order-1' : 'md:order-2')
+          }
         >
-          <div className="space-y-6">
-            <div className="w-16 h-16 bg-black/5 rounded-2xl flex items-center justify-center">{infoCardOne.icon}</div>
-            <h3 className={infoCardOne.textClassName + " text-3xl font-bold"}>{infoCardOne.title}</h3>
-            <p className={infoCardOne.textClassName + " text-lg leading-relaxed"}>{infoCardOne.description}</p>
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-black/5 sm:h-16 sm:w-16">{infoCardOne.icon}</div>
+            <h3 className={infoCardOne.textClassName + " text-2xl font-bold leading-tight sm:text-3xl"}>{infoCardOne.title}</h3>
+            <p className={infoCardOne.textClassName + " text-base leading-relaxed sm:text-lg"}>{infoCardOne.description}</p>
           </div>
         </motion.div>
 
@@ -104,12 +108,16 @@ export function BenefitsShowcaseSection({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
-          className={infoCardTwo.className + ' ' + (reverse ? 'md:order-4' : 'md:order-3')}
+          className={
+            infoCardTwo.className +
+            ' !relative !overflow-hidden !rounded-[2rem] !p-6 !h-auto !min-h-[260px] sm:!rounded-[2.5rem] sm:!p-8 sm:!min-h-[320px] md:!rounded-[3rem] md:!p-10 md:!min-h-[450px] !flex !flex-col !justify-end ' +
+            (reverse ? 'md:order-4' : 'md:order-3')
+          }
         >
-          <div className="space-y-6">
-            <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center">{infoCardTwo.icon}</div>
-            <h3 className={infoCardTwo.textClassName + " text-3xl font-bold"}>{infoCardTwo.title}</h3>
-            <p className={infoCardTwo.textClassName + " text-lg leading-relaxed"}>{infoCardTwo.description}</p>
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 sm:h-16 sm:w-16">{infoCardTwo.icon}</div>
+            <h3 className={infoCardTwo.textClassName + " text-2xl font-bold leading-tight sm:text-3xl"}>{infoCardTwo.title}</h3>
+            <p className={infoCardTwo.textClassName + " text-base leading-relaxed sm:text-lg"}>{infoCardTwo.description}</p>
           </div>
         </motion.div>
 
@@ -118,7 +126,11 @@ export function BenefitsShowcaseSection({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.3 }}
-          className={wideCard.className + ' ' + (reverse ? 'md:order-3' : 'md:order-4')}
+          className={
+            wideCard.className +
+            ' !relative !overflow-hidden !rounded-[2rem] !p-6 !h-auto !min-h-[320px] sm:!rounded-[2.5rem] sm:!p-8 sm:!min-h-[380px] md:!rounded-[3rem] md:!p-10 md:!min-h-[450px] !flex !flex-col !justify-end ' +
+            (reverse ? 'md:order-3' : 'md:order-4')
+          }
         >
           {wideImageLayout === "background" ? (
             <>
@@ -133,13 +145,13 @@ export function BenefitsShowcaseSection({
           ) : null}
 
           <div className="relative z-10 w-full md:w-3/5">
-            <h3 className={wideCard.textClassName + " text-4xl font-bold mb-6"}>{wideCard.title}</h3>
-            <p className={wideCard.textClassName + " text-lg leading-relaxed mb-8"}>{wideCard.description}</p>
-            <div className="flex gap-4 flex-wrap">
+            <h3 className={wideCard.textClassName + " mb-4 text-2xl font-bold leading-tight sm:mb-6 sm:text-3xl md:text-4xl"}>{wideCard.title}</h3>
+            <p className={wideCard.textClassName + " mb-6 text-base leading-relaxed sm:mb-8 sm:text-lg"}>{wideCard.description}</p>
+            <div className="flex flex-wrap gap-2 sm:gap-4">
               {wideCard.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="px-4 py-2 text-white bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider"
+                  className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white sm:px-4 sm:py-2 sm:text-xs"
                 >
                   {tag}
                 </span>
@@ -149,7 +161,7 @@ export function BenefitsShowcaseSection({
           {wideImageLayout === "side" ? (
             <div
               className={
-                'absolute bottom-0 w-full h-[120%] md:w-3/4 md:h-[130%] pointer-events-none ' +
+                'pointer-events-none absolute bottom-0 h-[115%] w-full opacity-55 md:h-[130%] md:w-3/4 md:opacity-100 ' +
                 (reverse ? 'left-[-10%]' : 'right-[-10%]')
               }
             >

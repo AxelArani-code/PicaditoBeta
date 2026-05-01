@@ -12,12 +12,12 @@ import Image from 'next/image';
 export default function NosotrosPage() {
 
   return (
-    <div className=' from-gray-900 via-gray-800 to-gray-900 bg-gradient-to-br'>
+    <div className='overflow-x-clip from-gray-900 via-gray-800 to-gray-900 bg-gradient-to-br'>
       <Navbar/>
- <main className="min-h-screen  pt-32 pb-32">
+ <main className="min-h-screen pt-24 pb-20 sm:pt-28 sm:pb-24 md:pt-32 md:pb-32">
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-6 mb-32 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-        <div className="order-2 lg:order-1">
+      <section className="mx-auto mb-20 grid max-w-7xl grid-cols-1 items-center gap-10 px-4 sm:mb-24 sm:gap-12 sm:px-6 md:mb-32 lg:grid-cols-2">
+        <div>
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -27,21 +27,21 @@ export default function NosotrosPage() {
               <div className="h-px w-8 bg-[#22c55e]/50"></div>
               <span className="text-[#22c55e] font-bold text-xs tracking-[0.2em] uppercase">Sobre Nosotros</span>
             </div>
-            <h1 className=" text-white text-7xl md:text-8xl font-black leading-[0.9] tracking-tight uppercase">
+            <h1 className="max-w-[12ch] text-5xl font-black leading-[0.92] tracking-tight text-white uppercase sm:text-6xl lg:text-7xl xl:text-8xl">
               Sobre <br />
               <span className="text-[#22c55e] italic">Picadito</span>
               <span className="text-white">.</span>
             </h1>
-            <p className="text-slate-400 text-xl max-w-lg leading-relaxed">
+            <p className="max-w-lg text-lg leading-relaxed text-slate-400 sm:text-xl">
               Nacimos para transformar el caos del fútbol amateur en una experiencia profesional. Eliminamos las planillas de papel y los grupos de WhatsApp infinitos.
             </p>
-            <button className="px-10 py-4 bg-slate-900 text-white rounded-full font-bold hover:bg-slate-800 transition-all shadow-xl">
+            <button className="inline-flex w-full items-center justify-center rounded-full bg-slate-900 px-8 py-3.5 font-bold text-white shadow-xl transition-all hover:bg-slate-800 sm:w-auto sm:px-10 sm:py-4">
               Conoce más
             </button>
           </motion.div>
         </div>
 
-        <div className="order-1 lg:order-2 relative group">
+        <div className="relative group">
           {/* Stadium Image Wrapper */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -61,7 +61,7 @@ export default function NosotrosPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="absolute bottom-8 right-8 left-8 md:left-auto md:w-80 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl"
+              className="absolute bottom-4 left-4 right-4 rounded-3xl border border-white/10 bg-slate-900/80 p-4 shadow-2xl backdrop-blur-xl sm:bottom-8 sm:left-8 sm:right-8 sm:p-6 md:left-auto md:w-80"
             >
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
@@ -87,22 +87,22 @@ export default function NosotrosPage() {
       </section>
 
       {/* Grid Cards Section */}
-      <section className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+      <section className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 sm:gap-6 sm:px-6 md:grid-cols-3">
         {/* Qué hacemos */}
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          className="md:col-span-2 bg-[#1a1f2e] border border-white/5 rounded-[3rem] p-12 md:p-16 flex flex-col justify-between"
+          className="md:col-span-2 bg-[#1a1f2e] border border-white/5 rounded-[2rem] p-6 sm:rounded-[2.5rem] sm:p-8 md:rounded-[3rem] md:p-12 lg:p-16 flex flex-col justify-between"
         >
           <div className="max-w-xl">
             <span className="text-primary font-bold text-[10px] tracking-[0.3em] uppercase mb-4 block">Propuesta</span>
-            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight uppercase mb-8">Qué hacemos</h2>
-            <p className="text-slate-400 text-lg leading-relaxed mb-12">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase mb-6 sm:mb-8">Qué hacemos</h2>
+            <p className="text-slate-400 text-base sm:text-lg leading-relaxed mb-8 sm:mb-12">
               Centralizamos la gestión de canchas, reservas y torneos en una única plataforma. Automatizamos lo aburrido para que los dueños se enfoquen en brindar el mejor servicio y los jugadores solo se preocupen por el resultado.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
             <div className="space-y-4">
               <Calendar className="w-8 h-8 text-primary" />
               <div>
@@ -132,21 +132,21 @@ export default function NosotrosPage() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-primary rounded-[3rem] p-12 md:p-16 flex flex-col justify-between group"
+          className="bg-primary rounded-[2rem] p-6 sm:rounded-[2.5rem] sm:p-8 md:rounded-[3rem] md:p-12 lg:p-16 flex flex-col justify-between group"
         >
           <div>
             <span className="text-black/40 font-bold text-[10px] tracking-[0.3em] uppercase mb-4 block">Alcance</span>
-            <h2 className="text-4xl md:text-5xl font-black text-[#1a1a1a] tracking-tight uppercase mb-12">Para quién</h2>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#1a1a1a] tracking-tight uppercase mb-8 sm:mb-12">Para quién</h2>
           </div>
           
           <div className="space-y-4">
-            <div className="flex items-center gap-4 bg-white/20 backdrop-blur-md p-6 rounded-3xl border border-white/30 group-hover:bg-white/30 transition-all">
+            <div className="flex items-center gap-4 bg-white/20 backdrop-blur-md p-4 sm:p-6 rounded-3xl border border-white/30 group-hover:bg-white/30 transition-all">
               <Home className="w-8 h-8 text-[#1a1a1a]" />
-              <span className="text-lg font-bold text-[#1a1a1a]">Dueños de Complejos</span>
+              <span className="text-base sm:text-lg font-bold text-[#1a1a1a]">Dueños de Complejos</span>
             </div>
-            <div className="flex items-center gap-4 bg-white/20 backdrop-blur-md p-6 rounded-3xl border border-white/30 group-hover:bg-white/30 transition-all">
+            <div className="flex items-center gap-4 bg-white/20 backdrop-blur-md p-4 sm:p-6 rounded-3xl border border-white/30 group-hover:bg-white/30 transition-all">
               <Users className="w-8 h-8 text-[#1a1a1a]" />
-              <span className="text-lg font-bold text-[#1a1a1a]">Organizadores</span>
+              <span className="text-base sm:text-lg font-bold text-[#1a1a1a]">Organizadores</span>
             </div>
           </div>
         </motion.div>
@@ -155,15 +155,15 @@ export default function NosotrosPage() {
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          className="bg-[#1a1f2e] border border-white/5 rounded-[3rem] p-12 md:p-16 relative overflow-hidden"
+          className="bg-[#1a1f2e] border border-white/5 rounded-[2rem] p-6 sm:rounded-[2.5rem] sm:p-8 md:rounded-[3rem] md:p-12 lg:p-16 relative overflow-hidden"
         >
           <div className="flex gap-1.5 mb-8">
             <div className="w-2 h-2 rounded-full bg-red-500" />
             <div className="w-2 h-2 rounded-full bg-yellow-500" />
             <div className="w-2 h-2 rounded-full bg-green-500" />
           </div>
-          <h2 className="text-3xl font-black text-white tracking-tight uppercase mb-8 leading-tight">Por qué lo hicimos</h2>
-          <p className="text-slate-400 italic text-xl leading-relaxed border-l-2 border-primary/40 pl-6">
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase mb-6 sm:mb-8 leading-tight">Por qué lo hicimos</h2>
+          <p className="text-slate-400 italic text-base sm:text-lg md:text-xl leading-relaxed border-l-2 border-primary/40 pl-4 sm:pl-6">
             "Nació del agotamiento. Grupos de WhatsApp explotando, señas que no llegaban, planillas que se mojaban y capitanes cancelando a las 7 PM. Sabíamos que el fútbol amateur merecía tecnología de primera división."
           </p>
         </motion.div>
@@ -173,7 +173,7 @@ export default function NosotrosPage() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="md:col-span-2 relative rounded-[3rem] overflow-hidden p-12 md:p-16 flex flex-col justify-end group min-h-[400px]"
+          className="md:col-span-2 relative rounded-[2rem] sm:rounded-[2.5rem] md:rounded-[3rem] overflow-hidden p-6 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-end group min-h-[320px] sm:min-h-[360px] md:min-h-[400px]"
         >
           <img 
             src="https://i.pinimg.com/736x/91/e8/1a/91e81af5a8c657dd561ba8b8e3a328f0.jpg" 
@@ -184,8 +184,8 @@ export default function NosotrosPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
           
           <div className="relative z-10 max-w-xl">
-            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight uppercase mb-6 leading-tight">Nuestra Visión</h2>
-            <p className="text-slate-200 text-lg leading-relaxed">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase mb-4 sm:mb-6 leading-tight">Nuestra Visión</h2>
+            <p className="text-slate-200 text-base sm:text-lg leading-relaxed">
               Convertir cada partido amateur en una experiencia de élite, digitalizando el corazón del deporte más hermoso del mundo.
             </p>
           </div>
@@ -194,7 +194,7 @@ export default function NosotrosPage() {
 
       {/* CTA Section */}
      
-      <div  className="grid gap-16   pb-20 items-start max-w-7xl mx-auto">
+      <div  className="mx-auto grid max-w-7xl items-start gap-10 px-4 pb-20 pt-10 sm:gap-12 sm:px-6 md:gap-16 md:pt-14">
          <CTA 
           title="¿Qué esperás"
                     highlight="para empezar?"
