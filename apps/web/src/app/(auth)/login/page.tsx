@@ -1,13 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { View } from '@/components/home/HomePageClient';
 import { ArrowRight, Lock, Mail } from 'lucide-react';
 import Image from 'next/image';
 import { Card } from '@/components/design-system/Card';
+import { clearAuthSession, saveAuthSession, type AuthSession } from "@/lib/auth/session";
+
+const REMEMBER_ME_KEY = "picadito.auth.remember_me";
+const REMEMBER_CREDENTIALS_KEY = "picadito.auth.remember_credentials";
+
+type RememberedCredentials = {
+  email: string;
+  password: string;
+};
 
 interface LoginProps {
   onNavigate?: (view: View) => void;
@@ -27,25 +35,129 @@ export default function LoginPage({ onNavigate }: LoginProps) {
     };
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
+    const [rememberMe, setRememberMe] = useState(false);
+
+    useEffect(() => {
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      const stored = localStorage.getItem(REMEMBER_ME_KEY);
+      const isRememberEnabled = stored === "true";
+      setRememberMe(isRememberEnabled);
+
+      if (!isRememberEnabled) {
+        return;
+      }
+
+      const storedCredentials = localStorage.getItem(REMEMBER_CREDENTIALS_KEY);
+      if (!storedCredentials) {
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(storedCredentials) as RememberedCredentials;
+        if (parsed.email) {
+          setEmail(parsed.email);
+        }
+        if (parsed.password) {
+          setPassword(parsed.password);
+        }
+      } catch {
+        localStorage.removeItem(REMEMBER_CREDENTIALS_KEY);
+      }
+    }, []);
+
+    const handleRememberMeChange = (checked: boolean) => {
+      setRememberMe(checked);
+
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      localStorage.setItem(REMEMBER_ME_KEY, String(checked));
+
+      if (!checked) {
+        localStorage.removeItem(REMEMBER_CREDENTIALS_KEY);
+      }
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+      setErrorMessage("");
+
+      if (!email.trim() || !password) {
+        const validationMessage = "Completá email y contraseña para continuar.";
+        setErrorMessage(validationMessage);
+        toast.error(validationMessage);
+        return;
+      }
+
         setLoading(true);
 
-        const supabase = createClient();
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+          }),
+        });
 
-        if (error) {
-            toast.error(error.message === "Invalid login credentials"
-                ? "Credenciales incorrectas"
-                : error.message);
-        } else {
-            router.push("/dashboard");
-            router.refresh();
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          const apiError =
+            (typeof data.error === "string" && data.error) ||
+            (typeof data.msg === "string" && data.msg) ||
+            "No se pudo iniciar sesión.";
+
+          setErrorMessage(apiError === "Invalid login credentials"
+            ? "Credenciales incorrectas"
+            : apiError);
+
+          toast.error(apiError === "Invalid login credentials"
+            ? "Credenciales incorrectas"
+            : apiError);
+          return;
         }
+
+        if (!data.access_token) {
+          const missingTokenMessage = "La respuesta de autenticación no incluyó un access token.";
+          setErrorMessage(missingTokenMessage);
+          toast.error(missingTokenMessage);
+          return;
+        }
+
+        if (rememberMe) {
+          saveAuthSession(data as AuthSession);
+          localStorage.setItem(
+            REMEMBER_CREDENTIALS_KEY,
+            JSON.stringify({
+              email: email.trim(),
+              password,
+            })
+          );
+        } else {
+          clearAuthSession();
+          localStorage.removeItem(REMEMBER_CREDENTIALS_KEY);
+        }
+
+        toast.success("Sesión iniciada correctamente");
+        router.push("/dashboard");
+        router.refresh();
+      } catch {
+        const connectionMessage = "No se pudo conectar con el servidor. Intentá nuevamente.";
+        setErrorMessage(connectionMessage);
+        toast.error(connectionMessage);
+      } finally {
         setLoading(false);
+      }
     };
 
     return (
@@ -87,7 +199,7 @@ export default function LoginPage({ onNavigate }: LoginProps) {
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black mb-2 sm:mb-3">Iniciar sesión</h1>
           <p className="text-xs sm:text-sm md:text-base text-text-secondary mb-8 sm:mb-10 leading-relaxed">Bienvenido de nuevo, preparate para el próximo partido.</p>
 
-          <form className="space-y-4 sm:space-y-5">
+          <form className="space-y-4 sm:space-y-5" onSubmit={handleLogin}>
             <div>
               <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">Email Address</label>
               <div className="relative mt-1.5 sm:mt-2">
@@ -95,6 +207,10 @@ export default function LoginPage({ onNavigate }: LoginProps) {
                 <input
                   type="email"
                   placeholder="nombre@ejemplo.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="email"
+                  disabled={loading}
                   className="w-full bg-slate-900/50 border border-slate-700 rounded-lg sm:rounded-2xl py-3 sm:py-4 pl-10 sm:pl-12 pr-3 sm:pr-4 text-sm sm:text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
                 />
               </div>
@@ -107,14 +223,29 @@ export default function LoginPage({ onNavigate }: LoginProps) {
                 <input
                   type="password"
                   placeholder="••••••••"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="current-password"
+                  disabled={loading}
                   className="w-full bg-slate-900/50 border border-slate-700 rounded-lg sm:rounded-2xl py-3 sm:py-4 pl-10 sm:pl-12 pr-3 sm:pr-4 text-sm sm:text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
                 />
               </div>
             </div>
 
+            {errorMessage && (
+              <p className="text-sm text-red-400" role="alert">
+                {errorMessage}
+              </p>
+            )}
+
             <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
               <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-primary focus:ring-2 focus:ring-primary" />
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(event) => handleRememberMeChange(event.target.checked)}
+                  className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-primary focus:ring-2 focus:ring-primary"
+                />
                 <span className="hidden sm:inline">Recordarme</span>
                 <span className="sm:hidden">Recordar</span>
               </label>
@@ -123,9 +254,10 @@ export default function LoginPage({ onNavigate }: LoginProps) {
 
             <button
               type="submit"
+              disabled={loading}
               className="w-full py-3 sm:py-4 text-base sm:text-lg font-bold rounded-full bg-primary text-slate-950 hover:bg-primary-hover active:bg-primary-active transition-shadow shadow-lg"
             >
-              Ingresar <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 inline-block ml-2" />
+              {loading ? "Ingresando..." : "Ingresar"} <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 inline-block ml-2" />
             </button>
           </form>
 

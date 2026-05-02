@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, ExternalLink, Target } from "lucide-react";
+import { Bell, ExternalLink, LogOut, Target } from "lucide-react";
 import type { Profile } from "@/types";
+import { useRouter } from "next/navigation";
+import { clearAuthSession } from "@/lib/auth/session";
 
 interface Props {
     profile: Profile | null;
@@ -10,6 +12,23 @@ interface Props {
 }
 
 export function DashboardHeader({ profile, unreadCount }: Props) {
+    const router = useRouter();
+
+    const handleSignOut = async () => {
+        try {
+            await fetch("/api/auth/logout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+        } finally {
+            clearAuthSession();
+            router.push("/login");
+            router.refresh();
+        }
+    };
+
     return (
         <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6">
             {/* Mobile logo */}
@@ -47,6 +66,15 @@ export function DashboardHeader({ profile, unreadCount }: Props) {
                         </span>
                     )}
                 </Link>
+
+                <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    aria-label="Cerrar sesión"
+                >
+                    <LogOut className="h-5 w-5" />
+                </button>
 
                 {/* Avatar */}
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary">

@@ -1,38 +1,19 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Building2, CalendarCheck, Trophy, Users, TrendingUp, Clock } from "lucide-react";
+import { cookies } from "next/headers";
+import { CalendarCheck, Trophy, Users, TrendingUp, Clock } from "lucide-react";
 import Link from "next/link";
 
 export default async function DashboardPage() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect("/login");
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("picadito_access_token")?.value;
 
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-    const isOwner = profile?.role === "venue_owner" || profile?.role === "admin";
-
-    // Stats paralelas
-    const [bookingsRes, matchesRes, teamsRes, venuesRes] = await Promise.all([
-        supabase.from("bookings").select("id, status", { count: "exact" }).eq("created_by", user.id),
-        supabase.from("match_players").select("match_id", { count: "exact" }).eq("user_id", user.id),
-        supabase.from("team_members").select("team_id", { count: "exact" }).eq("user_id", user.id),
-        isOwner
-            ? supabase.from("venues").select("id", { count: "exact" }).eq("owner_id", user.id)
-            : Promise.resolve({ count: 0 }),
-    ]);
-
-    const pendingBookings = bookingsRes.data?.filter((b) => b.status === "pending").length ?? 0;
+    if (!accessToken) redirect("/login");
 
     const stats = [
         {
             label: "Reservas",
-            value: bookingsRes.count ?? 0,
-            sub: `${pendingBookings} pendientes`,
+            value: 0,
+            sub: "0 pendientes",
             icon: CalendarCheck,
             color: "text-blue-400",
             bg: "bg-blue-400/10",
@@ -40,7 +21,7 @@ export default async function DashboardPage() {
         },
         {
             label: "Partidos",
-            value: matchesRes.count ?? 0,
+            value: 0,
             sub: "jugados",
             icon: Trophy,
             color: "text-green-400",
@@ -49,34 +30,30 @@ export default async function DashboardPage() {
         },
         {
             label: "Equipos",
-            value: teamsRes.count ?? 0,
+            value: 0,
             sub: "en los que participás",
             icon: Users,
             color: "text-yellow-400",
             bg: "bg-yellow-400/10",
             href: "/dashboard/equipos",
         },
-        ...(isOwner
-            ? [{
-                label: "Complejos",
-                value: (venuesRes as any).count ?? 0,
-                sub: "gestionados",
-                icon: Building2,
-                color: "text-purple-400",
-                bg: "bg-purple-400/10",
-                href: "/dashboard/venues",
-            }]
-            : []),
+        {
+            label: "Ranking",
+            value: 0,
+            sub: "posición actual",
+            icon: TrendingUp,
+            color: "text-indigo-400",
+            bg: "bg-indigo-400/10",
+            href: "/dashboard/ranking",
+        },
     ];
-
-    const displayName = profile?.full_name ?? profile?.username ?? "Jugador";
 
     return (
         <div className="animate-fade-in space-y-8">
             {/* Saludo */}
             <div>
-                <h1 className="text-2xl font-bold">Bienvenido, {displayName}</h1>
-                <p className="text-muted-foreground mt-1">Acá está tu resumen de actividad.</p>
+                <h1 className="text-2xl font-bold">Bienvenido a tu dashboard</h1>
+                <p className="text-muted-foreground mt-1">Tu sesión está activa y esta vista ya está lista para escalar con datos reales.</p>
             </div>
 
             {/* Stats grid */}

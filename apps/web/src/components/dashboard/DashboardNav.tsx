@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import {
     Home, Building2, CalendarCheck, Trophy, Users, User, BarChart3, LogOut, Target,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import type { Profile } from "@/types";
+import { clearAuthSession } from "@/lib/auth/session";
 
 const NAV_ITEMS = [
     { href: "/dashboard", label: "Inicio", icon: Home },
@@ -28,9 +28,18 @@ export function DashboardNav({ profile }: Props) {
     const router = useRouter();
 
     const handleSignOut = async () => {
-        const supabase = createClient();
-        await supabase.auth.signOut();
-        router.push("/login");
+        try {
+            await fetch("/api/auth/logout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+        } finally {
+            clearAuthSession();
+            router.push("/login");
+            router.refresh();
+        }
     };
 
     const navItems = NAV_ITEMS.filter(
