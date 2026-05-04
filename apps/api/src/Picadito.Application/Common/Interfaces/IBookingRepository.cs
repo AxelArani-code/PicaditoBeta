@@ -17,6 +17,8 @@ public interface IBookingRepository
     /// Obtiene todas las reservas con filtros opcionales.
     /// </summary>
     Task<List<BookingDto>> GetAllAsync(
+        Guid currentUserId,
+        UserRole userRole,
         string? status,
         string? paymentStatus,
         Guid? pitchId,

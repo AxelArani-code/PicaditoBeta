@@ -6,6 +6,8 @@ using Picadito.Application.DTOs;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
+using Picadito.Domain.Enums;
 using ErrorOr;
 
 namespace Picadito.Application.Features.Bookings.Queries.GetBookings;
@@ -27,11 +29,13 @@ public class GetBookingsHandler(
 
         var user = httpContextAccessor.HttpContext?.User;
         
+        /// Verificar si usuario es autenticado
         if (user?.Identity?.IsAuthenticated != true)
         {
             return Error.Unauthorized(description: "Usuario no autenticado.");
         }
 
+        /// Obtener el usuario y verificar si existe
         var userIdClaim = httpContextAccessor.HttpContext?.User
             .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         
@@ -40,8 +44,37 @@ public class GetBookingsHandler(
             return Error.Unauthorized(description: "No se pudo identificar al usuario.");
         }
 
-        _logger.LogInformation("GetBookings request started: UserId={UserId}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}",
-            userIdClaim, request.Status, request.PaymentStatus, request.PitchId);
+        var userId = Guid.Parse(userIdClaim);
+
+        // Extraer rol desde app_metadata (formato JSON)
+        var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
+        string? roleName = null;
+
+        if (!string.IsNullOrEmpty(rawRoleClaim))
+        {
+            try
+            {
+                using var jsonDoc = JsonDocument.Parse(rawRoleClaim);
+                if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
+                {
+                    roleName = roleElement.GetString();
+                }
+            }
+            catch
+            {
+                _logger.LogWarning("Invalid role format in token");
+                return Error.Unauthorized(description: "El formato del rol en el token es inválido.");
+            }
+        }
+
+        if (!Enum.TryParse<UserRole>(roleName, true, out var userRole))
+        {
+            _logger.LogWarning("Invalid role. Role: {Role}", roleName);
+            return Error.Forbidden(code: "Role.Invalid", description: $"El rol '{roleName}' no es reconocido.");
+        }
+
+        _logger.LogInformation("GetBookings request started: UserId={UserId}, Role={Role}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}",
+            userIdClaim, userRole, request.Status, request.PaymentStatus, request.PitchId);
 
         try
         {
@@ -55,6 +88,8 @@ public class GetBookingsHandler(
             }
 
             var bookings = await bookingRepository.GetAllAsync(
+                userId,
+                userRole,
                 request.Status,
                 request.PaymentStatus,
                 request.PitchId,
@@ -66,14 +101,14 @@ public class GetBookingsHandler(
             if (elapsedMs > 500)
             {
                 _logger.LogWarning(
-                    "[SLOW QUERY] GetBookings: ElapsedMs={ElapsedMs}, UserId={UserId}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, Count={Count}",
-                    elapsedMs, userIdClaim, request.Status, request.PaymentStatus, request.PitchId, bookings.Count);
+                    "[SLOW QUERY] GetBookings: ElapsedMs={ElapsedMs}, UserId={UserId}, Role={Role}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, Count={Count}",
+                    elapsedMs, userIdClaim, userRole,request.Status, request.PaymentStatus, request.PitchId, bookings.Count);
             }
             else
             {
                 _logger.LogInformation(
-                    "GetBookings completed: ElapsedMs={ElapsedMs}, UserId={UserId}, Count={Count}",
-                    elapsedMs, userIdClaim, bookings.Count);
+                    "GetBookings completed: ElapsedMs={ElapsedMs}, UserId={UserId}, Role={Role}, Count={Count}",
+                    elapsedMs, userIdClaim, userRole, bookings.Count);
             }
 
             return bookings;

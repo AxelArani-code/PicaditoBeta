@@ -34,6 +34,8 @@ public class BookingRepository : IBookingRepository
     }
 
     public async Task<List<BookingDto>> GetAllAsync(
+        Guid currentUserId,
+        UserRole userRole,
         string? status,
         string? paymentStatus,
         Guid? pitchId,
@@ -45,7 +47,23 @@ public class BookingRepository : IBookingRepository
             IQueryable<Booking> query = _context.Bookings
                 .AsNoTracking()
                 .Include(b => b.Pitch)
+                .ThenInclude(p => p.Venue)
                 .Include(b => b.User);
+
+            // --- 🛡️ APLICACIÓN DE SEGURIDAD (BYPASS DE RLS EN C#) ---
+            if (userRole != UserRole.admin)
+            {
+                if (userRole == UserRole.venue_owner)
+                {
+                    // Un dueño solo ve las reservas de sus complejos
+                    query = query.Where(b => b.Pitch.Venue.OwnerId == currentUserId);
+                }
+                else
+                {
+                    // Un player solo ve sus propias reservas
+                    query = query.Where(b => b.UserId == currentUserId);
+                }
+            }
 
             if (!string.IsNullOrEmpty(status))
             {
