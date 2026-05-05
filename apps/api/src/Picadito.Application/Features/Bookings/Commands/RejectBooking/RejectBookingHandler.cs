@@ -37,8 +37,7 @@ public class RejectBookingHandler(
             
             var user = httpContextAccessor.HttpContext?.User;
 
-            /// Validamos que el usuario esté autenticado.
-            
+            /// Validamos que el usuario esté autenticado. 
             if (user?.Identity?.IsAuthenticated != true)
             {
                 _logger.LogWarning("User not authenticated");
@@ -46,7 +45,6 @@ public class RejectBookingHandler(
             }
 
             /// Extraemos el ID del usuario.
-
             var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
                 ?? user.FindFirst("sub")?.Value;
             
@@ -56,6 +54,25 @@ public class RejectBookingHandler(
                 return Error.Unauthorized(description: "No se pudo identificar al usuario.");
             }
 
+            /// Verificamos si el usuario tiene el rol de venue_owner o admin en app_metadata
+            var rawAppMetadata = user.FindFirst("app_metadata")?.Value;
+            if (string.IsNullOrEmpty(rawAppMetadata))
+            {
+                _logger.LogWarning("User app_metadata not found. UserId: {UserId}", userIdClaim);
+                return Error.Forbidden(
+                    "Booking.Forbidden",
+                    "Acceso denegado. Solo los propietarios de complejos pueden gestionar reservas.");
+            }
+            
+            var (isAdmin, isOwner) = GetUserRoles(rawAppMetadata);
+
+            // Validamos que tenga un rol permitido (Admin o VenueOwner)
+            if (!isAdmin && !isOwner)
+            {
+                _logger.LogWarning("Unauthorized role attempt. UserId: {UserId}", userIdClaim);
+                return Error.Forbidden(description: "No tienes el rol correspondiente para rechazar reservas.");
+            }
+            
             /// Obtener la reserva CON la información del Venue
             var booking = await bookingRepository.GetByIdWithVenueAsync(request.Id, cancellationToken);
             if (booking is null)
@@ -63,33 +80,26 @@ public class RejectBookingHandler(
                 _logger.LogWarning("Booking not found. BookingId: {BookingId}", request.Id);
                 return Error.NotFound(description: "La reserva no existe.");
             }
-            // Verificamos si el ownerId del complejo coincide con el userId del token
-            if (booking.Pitch.Venue.OwnerId != currentUserId)
-            {
-                _logger.LogWarning("Intento de rechazo no autorizado. El usuario {UserId} intentó rechazar la reserva {BookingId} pero no es el dueño del complejo.", currentUserId, booking.Id);
-                
-                return Error.Forbidden(
-                    code: "Booking.NotOwner", 
-                    description: "No tenés permisos para gestionar reservas de este complejo.");
-            }
 
-            /// Verificamos que el usuario tenga el rol de venue_owner.
-            var rawAppMetadata = user.FindFirst("app_metadata")?.Value;
-            
-            if (string.IsNullOrEmpty(rawAppMetadata) || !IsVenueOwner(rawAppMetadata))
-            {
-                _logger.LogWarning("User is not a venue owner. UserId: {UserId}", userIdClaim);
-                return Error.Forbidden(
-                    "Booking.Forbidden",
-                    "Acceso denegado. Solo los propietarios de complejos pueden gestionar reservas.");
+            /// Verificamos si el OwnerId del complejo coincide con el UserId del token, a menos que el usuario sea admin (que puede gestionar todas las reservas)  
+            if (!isAdmin) 
+            {        
+                if (booking.Pitch.Venue.OwnerId != currentUserId)
+                {
+                    _logger.LogWarning("Intento de rechazo no autorizado. El usuario {UserId} intentó rechazar la reserva {BookingId} pero no es el dueño del complejo.", currentUserId, booking.Id);
+                    
+                    return Error.Forbidden(
+                        code: "Booking.NotOwner", 
+                        description: "No tenés permisos para gestionar reservas de este complejo.");
+                }
             }
 
             /// Intentamos actualizar el estado de la reserva a rechazado.
-
             var result = await bookingRepository.UpdateStatusAsync(
                 request.Id,
                 BookingStatus.rejected,
                 currentUserId,
+                isAdmin,
                 cancellationToken);
             
             /// Manejo de errores y logging detallado.
@@ -114,20 +124,25 @@ public class RejectBookingHandler(
     /// </summary>
     /// <param name="appMetadata">JSON string del claim app_metadata.</param>
     /// <returns>True si el rol es venue_owner, false en caso contrario.</returns>
-    private static bool IsVenueOwner(string appMetadata)
+     private static (bool IsAdmin, bool IsOwner) GetUserRoles(string? appMetadata)
     {
+        if (appMetadata is null)
+        {
+            return (false, false);
+        }
         try
         {
             using var jsonDoc = JsonDocument.Parse(appMetadata);
             if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
             {
                 var role = roleElement.GetString();
-                return role == "venue_owner";
+                return (role == "admin", role == "venue_owner");
             }
         }
         catch
         {
+            // Si el formato del JSON es inválido, asumimos que no tiene roles válidos
         }
-        return false;
+        return (false, false);
     }
 }

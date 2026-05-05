@@ -136,6 +136,7 @@ public class BookingRepository : IBookingRepository
         Guid id,
         BookingStatus newStatus,
         Guid ownerId,
+        bool isAdmin,
         CancellationToken cancellationToken)
     {
         // Cargamos la reserva con su Pitch y Venue para validar propiedad
@@ -159,7 +160,7 @@ public class BookingRepository : IBookingRepository
 
         // Verificar que el usuario sea el propietario del Venue
         // IMPORTANTE: Esta validación es crítica para la seguridad
-        if (booking.Pitch.Venue.OwnerId != ownerId)
+        if (!isAdmin && booking.Pitch.Venue.OwnerId != ownerId)
         {
             return Error.Unauthorized(
                 "Booking.NotAuthorized",
@@ -200,6 +201,7 @@ public class BookingRepository : IBookingRepository
     public async Task<ErrorOr<Success>> CancelAsync(
         Guid id,
         Guid ownerId,
+        bool isAdmin,
         CancellationToken cancellationToken)
     {
         var booking = await _context.Bookings
@@ -212,7 +214,11 @@ public class BookingRepository : IBookingRepository
             return DomainErrors.Booking.NotFound;
         }
 
-        if (booking.Pitch.Venue.OwnerId != ownerId)
+         // --- REGLA DE SEGURIDAD DEL REPOSITORIO ---
+        bool isTheOwner = booking.Pitch.Venue.OwnerId == ownerId;
+        bool isThePlayer = booking.UserId == ownerId;
+
+        if (!isAdmin && !isTheOwner && !isThePlayer)
         {
             return DomainErrors.Booking.Unauthorized;
         }

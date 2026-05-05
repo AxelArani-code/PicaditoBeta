@@ -37,6 +37,7 @@ public interface IBookingRepository
         Guid id,
         BookingStatus newStatus,
         Guid ownerId,
+        bool isAdmin,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -66,6 +67,7 @@ public interface IBookingRepository
     Task<ErrorOr<Success>> CancelAsync(
         Guid id,
         Guid ownerId,
+        bool isAdmin,
         CancellationToken cancellationToken);
     /// <summary>
     /// Obtiene una reserva por su ID con la información del Venue para validar la propiedad.

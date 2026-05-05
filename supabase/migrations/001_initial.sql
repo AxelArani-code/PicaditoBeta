@@ -436,24 +436,61 @@ CREATE POLICY "Venue owners can manage slots" ON time_slots FOR ALL USING (
 );
 
 -- BOOKINGS
-CREATE POLICY "Users can view own bookings if not deleted" ON bookings FOR SELECT USING (
-  auth.uid() = user_id AND deleted_at IS NULL
+CREATE POLICY "Admin, Venue owners and Users can view bookings" ON bookings FOR SELECT USING (
+  is_admin() -- El Admin ve todo 
+  OR (
+    -- REGLA PARA EL DUEÑO (Sin filtro de deleted_at en la reserva)
+    EXISTS (
+      SELECT 1 FROM pitches p 
+      JOIN venues v ON p.venue_id = v.id
+      WHERE p.id = bookings.pitch_id 
+        AND v.owner_id = auth.uid() 
+        AND v.deleted_at IS NULL -- El local sí debe estar activo
+    )
+  )
+  OR (
+    -- REGLA PARA EL USER (Con filtros estrictos)
+    auth.uid() = user_id 
+    AND status = 'pending' 
+    AND deleted_at IS NULL
+  )
 );
-CREATE POLICY "Venue owners can view venue bookings if not deleted" ON bookings FOR SELECT USING (
-  deleted_at IS NULL AND EXISTS(
+CREATE POLICY "Admins, Venue owners and Users can insert bookings" 
+ON bookings FOR INSERT 
+WITH CHECK (
+  is_admin() -- 1. El Admin puede todo
+  OR (auth.uid() = user_id) -- 2. El Player/Owner puede insertar si el user_id es el suyo
+  OR EXISTS ( 
+    -- 3. Seguridad extra: El dueño puede insertar si la cancha le pertenece
+    SELECT 1 FROM pitches p 
+    JOIN venues v ON p.venue_id = v.id
+    WHERE p.id = pitch_id AND v.owner_id = auth.uid()
+  )
+);
+CREATE POLICY "Admins, Venue owners and Users update bookings" ON bookings 
+FOR UPDATE 
+USING (
+  is_admin() 
+  OR (auth.uid() = user_id AND status = 'pending') 
+  OR EXISTS(
     SELECT 1 FROM pitches p JOIN venues v ON p.venue_id = v.id
     WHERE p.id = bookings.pitch_id AND v.owner_id = auth.uid()
   )
-);
-CREATE POLICY "Users can insert bookings" ON bookings FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Venue owners can update bookings" ON bookings FOR UPDATE USING (
-  EXISTS(
+)
+WITH CHECK (
+  is_admin() -- El admin puede cambiar cualquier campo a cualquier valor
+  OR (
+    -- El JUGADOR solo puede cambiar el estado a 'cancelled'
+    -- Y NO puede cambiar el ID de usuario ni el precio
+    auth.uid() = user_id 
+    AND status = 'cancelled' -- <--- Restricción de seguridad clave
+    AND (user_id = (SELECT user_id FROM bookings WHERE id = id)) -- Evita cambio de dueño
+  )
+  OR EXISTS(
+    -- El DUEÑO puede gestionar estados, pero la reserva debe seguir siendo de su local
     SELECT 1 FROM pitches p JOIN venues v ON p.venue_id = v.id
     WHERE p.id = bookings.pitch_id AND v.owner_id = auth.uid()
   )
-);
-CREATE POLICY "Users can cancel pending bookings" ON bookings FOR UPDATE USING (
-  auth.uid() = user_id AND status = 'pending'
 );
 
 -- MATCHES

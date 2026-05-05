@@ -55,6 +55,17 @@ public class CancelBookingHandler(
                 return Error.Unauthorized(description: "No se pudo identificar al usuario.");
             }
 
+            /// Verificamos si el usuario tiene el rol de venue_owner en app_metadata  
+            var rawAppMetadata = user.FindFirst("app_metadata")?.Value;
+            if (string.IsNullOrEmpty(rawAppMetadata))
+            {
+                _logger.LogWarning("User app_metadata not found. UserId: {UserId}", userIdClaim);
+                return Error.Forbidden(
+                    "Booking.Forbidden",
+                    "Acceso denegado. No puede cancelar reservas.");
+            }
+            var (isAdmin, isOwner, isPlayer) = GetUserRoles(rawAppMetadata);
+
             /// Obtener la reserva CON la información del Venue
             var booking = await bookingRepository.GetByIdWithVenueAsync(request.Id, cancellationToken);
             if (booking is null)
@@ -63,30 +74,33 @@ public class CancelBookingHandler(
                 return Error.NotFound(description: "La reserva no existe.");
             }
 
-            /// Verificamos si el OwnerId del complejo coincide con el UserId del token
-            if (booking.Pitch.Venue.OwnerId != currentUserId)
-            {
-                _logger.LogWarning("Intento de cancelacion no autorizado. El usuario {UserId} intentó cancelar la reserva {BookingId} pero no es el dueño del complejo.", currentUserId, booking.Id);
-                
-                return Error.Forbidden(
-                    code: "Booking.NotOwner", 
-                    description: "No tenés permisos para gestionar reservas de este complejo.");
-            }
-            
-             /// Verificamos si el usuario tiene el rol de venue_owner en app_metadata  
-            var rawAppMetadata = user.FindFirst("app_metadata")?.Value;
-            
-            if (string.IsNullOrEmpty(rawAppMetadata) || !IsVenueOwner(rawAppMetadata))
-            {
-                _logger.LogWarning("User is not a venue owner. UserId: {UserId}", userIdClaim);
-                return Error.Forbidden(
-                    "Booking.Forbidden",
-                    "Acceso denegado. Solo los propietarios de complejos pueden cancelar reservas.");
-            }
+            // Validacion de permisos (Siguiendo la lógica de la política RLS)
+            bool hasPermission = false;
 
+            if (isAdmin) 
+                {
+                    hasPermission = true; // El Admin siempre puede
+                }
+                else if (isOwner && booking.Pitch.Venue.OwnerId == currentUserId)
+                {
+                    hasPermission = true; // El Dueño puede si es su complejo
+                }
+                else if (isPlayer && booking.UserId == currentUserId && booking.Status == BookingStatus.pending)
+                {
+                    hasPermission = true; // El Usuario puede solo si es suya y está pendiente
+                }
+
+                if (!hasPermission)
+                {
+                    _logger.LogWarning("Unauthorized cancellation attempt. User: {UserId}, Role: {Role}, Booking: {BookingId}", 
+                        currentUserId, rawAppMetadata, request.Id);
+                    return Error.Forbidden(description: "No tienes permisos para cancelar esta reserva en su estado actual.");
+                }          
+            
             var result = await bookingRepository.CancelAsync(
                 request.Id,
                 currentUserId,
+                isAdmin,
                 cancellationToken);
 
             if (result.IsError)
@@ -109,7 +123,7 @@ public class CancelBookingHandler(
     /// </summary>
     /// <param name="appMetadata">JSON string del claim app_metadata.</param>
     /// <returns>True si el rol es venue_owner, false en caso contrario.</returns>
-    private static bool IsVenueOwner(string appMetadata)
+    private static (bool IsAdmin, bool IsOwner, bool IsPlayer) GetUserRoles(string appMetadata)
     {
         try
         {
@@ -117,12 +131,14 @@ public class CancelBookingHandler(
             if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
             {
                 var role = roleElement.GetString();
-                return role == "venue_owner";
+                return (role == "admin", role == "venue_owner", role == "player");
             }
         }
         catch
         {
+            // Si el JSON es inválido o no tiene la propiedad "role", asumimos que no tiene roles válidos.
+            return (false, false, false);
         }
-        return false;
+        return (false, false, false);
     }
 }

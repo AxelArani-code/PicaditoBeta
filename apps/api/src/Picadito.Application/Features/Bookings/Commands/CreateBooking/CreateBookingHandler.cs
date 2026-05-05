@@ -96,7 +96,12 @@ public class CreateBookingHandler(
             }
 
             // Politica de seguridad segun rol
-            if (userRole == UserRole.venue_owner)
+            if (userRole == UserRole.admin)
+            {
+                // El Admin tiene "vía libre": puede crear reservas en cualquier cancha.
+                _logger.LogInformation("Admin {UserId} is creating a manual booking.", userId);
+            }
+            else if (userRole == UserRole.venue_owner)
             {
                 // Si es Dueño, verificamos que la cancha (Pitch) le pertenezca
                 var isOwner = await pitchRepository.IsOwnerAsync(timeSlot.PitchId, userId, cancellationToken);
@@ -107,10 +112,15 @@ public class CreateBookingHandler(
                     return Error.Forbidden(description: "No podés reservar en canchas que no son tuyas.");
                 }
             }
-            else if (userRole != UserRole.player)
+            else if (userRole == UserRole.player)
+            {
+                // El Player solo puede reservar para sí mismo (la lógica de userId ya lo garantiza)
+                _logger.LogInformation("Player {UserId} is creating a booking.", userId);
+            }
+            else 
             {
                 // Si no es ni Player ni Owner, bloqueamos por seguridad
-                _logger.LogWarning("User role not authorized. Role: {Role}", userRole);
+                _logger.LogWarning("User role not recognized. Role: {Role}", userRole);
                 return Error.Forbidden(description: "Tu perfil no tiene permisos para crear reservas.");
             }
 
