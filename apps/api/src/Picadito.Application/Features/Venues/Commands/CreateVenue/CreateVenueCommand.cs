@@ -13,4 +13,10 @@ public class CreateVenueCommand
     public string? Phone { get; set; } = string.Empty;
     public List<string>? Images { get; set; } = new();
     public string? Description { get; set; }
+    
+    /// <summary>
+    /// ID del propietario del recinto. Opcional - si no se proporciona, 
+    /// se asignará automáticamente según el rol del usuario.
+    /// </summary>
+    public Guid? OwnerId { get; set; }
 }

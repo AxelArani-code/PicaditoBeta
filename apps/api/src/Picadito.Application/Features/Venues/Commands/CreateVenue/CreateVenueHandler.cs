@@ -54,6 +54,7 @@ public class CreateVenueHandler(
             // Extraer rol desde app_metadata (formato JSON)
             var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
             string? roleName = null;
+            bool isAdmin = false;
 
             if (!string.IsNullOrEmpty(rawRoleClaim))
             {
@@ -72,17 +73,29 @@ public class CreateVenueHandler(
                 }
             }
 
+            // Determinar el rol del usuario y si es administrador
             if (!Enum.TryParse<UserRole>(roleName, true, out var userRole))
             {
                 _logger.LogWarning("Invalid role. Role: {Role}", roleName);
                 return Error.Forbidden(code: "Role.Invalid", description: $"El rol '{roleName}' no es reconocido.");
             }
 
-            // Verificar que el usuario tenga rol venue_owner
-            if (userRole != UserRole.venue_owner)
+            // Verificar si el usuario tiene rol de administrador
+            isAdmin = userRole == UserRole.admin;
+
+            // Lógica de negocio según el rol del usuario
+            if (userRole == UserRole.player)
             {
+                // Los jugadores no pueden crear recintos
+                _logger.LogWarning("Player role not authorized to create venues. UserId: {UserId}", userId);
+                return Error.Forbidden(description: "Los jugadores no pueden crear recintos.");
+            }
+
+            if (userRole != UserRole.venue_owner && !isAdmin)
+            {
+                // Roles no autorizados (ni venue_owner ni admin)
                 _logger.LogWarning("User role not authorized. UserId: {UserId}, Role: {Role}", userId, userRole);
-                return Error.Forbidden(description: "Solo los propietarios de complejos pueden crear venues.");
+                return Error.Forbidden(description: "No tienes permisos para crear recintos.");
             }
 
             // Verificar si ya existe un venue con ese nombre
@@ -91,6 +104,22 @@ public class CreateVenueHandler(
             {
                 _logger.LogWarning("Venue already exists. Name: {Name}", request.Name);
                 return DomainErrors.Venue.AlreadyExists;
+            }
+
+            // Determinar el OwnerId según el rol del usuario
+            Guid ownerId;
+            if (isAdmin)
+            {
+                // Si es admin: usar el OwnerId del comando si existe; si no, usar el ID del admin logueado
+                ownerId = request.OwnerId ?? userId;
+                _logger.LogInformation(
+                    "Admin creating venue. AdminId: {AdminId}, AssignedOwnerId: {OwnerId}, ProvidedOwnerId: {ProvidedOwnerId}",
+                    userId, ownerId, request.OwnerId);
+            }
+            else
+            {
+                // Si es venue_owner: forzar siempre el uso del ID del usuario logueado (por seguridad)
+                ownerId = userId;
             }
 
             // Crear la entidad
@@ -103,19 +132,24 @@ public class CreateVenueHandler(
                 Phone = request.Phone,
                 Images = request.Images ?? new List<string>(),
                 Description = request.Description,
-                OwnerId = userId,
+                OwnerId = ownerId,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
-            // Persistir
-            await venueRepository.AddAsync(venue, cancellationToken);
+            // Persistir pasando el ID del usuario actual y el flag de administrador
+            var result = await venueRepository.AddAsync(venue, userId, isAdmin, cancellationToken);
+
+            if (result.IsError)
+            {
+                return result.Errors;
+            }
 
             _logger.LogInformation(
                 "Venue created successfully. VenueId: {VenueId}, Name: {Name}, OwnerId: {OwnerId}",
-                venue.Id, venue.Name, venue.OwnerId);
+                result.Value, venue.Name, venue.OwnerId);
 
-            return venue.Id;
+            return result.Value;
         }
     }
 }

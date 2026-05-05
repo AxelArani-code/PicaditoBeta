@@ -13,7 +13,12 @@ public interface IVenueRepository
     /// <summary>
     /// Crea un nuevo complejo deportivo.
     /// </summary>
-    Task AddAsync(Venue venue, CancellationToken cancellationToken);
+    /// <param name="venue">Entidad del complejo a crear.</param>
+    /// <param name="currentUserId">ID del usuario autenticado que realiza la operación.</param>
+    /// <param name="isAdmin">Indica si el usuario tiene rol de administrador.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>El ID del complejo creado o un error.</returns>
+    Task<ErrorOr<Guid>> AddAsync(Venue venue, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken);
 
     /// <summary>
     /// Obtiene todos los complejos deportivos con filtros opcionales.

@@ -405,11 +405,24 @@ CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.
 
 -- VENUES
 CREATE POLICY "Venues viewable by everyone if not deleted" ON venues FOR SELECT USING (deleted_at IS NULL);
-CREATE POLICY "Owners can insert venues" ON venues FOR INSERT WITH CHECK (
-  auth.uid() = owner_id AND 
-  EXISTS(SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('venue_owner', 'admin'))
+CREATE POLICY "Admin and Owners can insert venues" ON venues 
+FOR INSERT WITH CHECK (
+  is_admin() -- 1. El Admin puede insertar CUALQUIER owner_id
+  OR (
+    -- 2. El dueño solo puede insertarse a SÍ MISMO
+    auth.uid() = owner_id 
+    AND EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE id = auth.uid() 
+      AND role = 'venue_owner'
+    )
+  )
 );
-CREATE POLICY "Owners can update own venues" ON venues FOR UPDATE USING (auth.uid() = owner_id);
+CREATE POLICY "Admins and Venue owners can update venues" ON venues 
+FOR UPDATE USING (
+  is_admin() -- El bypass del Admin
+  OR auth.uid() = owner_id -- Regla original para el dueño
+);
 
 -- PITCHES
 CREATE POLICY "Pitches viewable by everyone if not deleted" ON pitches FOR SELECT USING (deleted_at IS NULL);

@@ -25,10 +25,25 @@ public class VenueRepository : IVenueRepository
         _logger = logger;
     }
 
-    public async Task AddAsync(Venue venue, CancellationToken cancellationToken)
+    public async Task<ErrorOr<Guid>> AddAsync(Venue venue, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken)
     {
+        // Validación de seguridad: solo permitir si es admin o si el dueño del nuevo recinto es el mismo que está logueado
+        if (!isAdmin && venue.OwnerId != currentUserId)
+        {
+            _logger.LogWarning(
+                "Unauthorized venue creation attempt. VenueOwnerId: {VenueOwnerId}, CurrentUserId: {CurrentUserId}, IsAdmin: {IsAdmin}",
+                venue.OwnerId, currentUserId, isAdmin);
+            return Error.Unauthorized("Venue.Unauthorized", "No tienes permisos para crear este recinto.");
+        }
+
         await _context.Venues.AddAsync(venue, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Venue created successfully. VenueId: {VenueId}, OwnerId: {OwnerId}, IsAdmin: {IsAdmin}",
+            venue.Id, venue.OwnerId, isAdmin);
+
+        return venue.Id;
     }
 
     public async Task<List<VenueDto>> GetAllAsync(
