@@ -5,6 +5,7 @@ using Picadito.Application.Features.Venues.Commands.DeleteVenue;
 using Picadito.Application.Features.Venues.Queries.GetAllVenues;
 using Picadito.Application.Features.Venues.Queries.GetVenueById;
 using Picadito.Application.DTOs;
+using Picadito.Application.Common.Models;
 using ErrorOr;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
@@ -38,14 +39,14 @@ public class VenuesController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene todos los complejos deportivos con filtros opcionales.
+    /// Obtiene todos los complejos deportivos con filtros opcionales y paginación.
     /// Acceso público (sin autenticación).
     /// </summary>
-    /// <param name="query">Filtros opcionales: Name, Address, IsActive.</param>
+    /// <param name="query">Filtros opcionales: Name, Address, IsActive, PageNumber, PageSize.</param>
     /// <param name="cancellationToken">Token de cancelación.</param>
-    /// <returns>Lista de complejos deportivos o errores.</returns>
+    /// <returns>Respuesta paginada con los complejos deportivos.</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(List<VenueDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<VenueDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetAllVenues(
         [FromQuery] GetAllVenuesQuery query,

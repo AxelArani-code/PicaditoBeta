@@ -18,5 +18,17 @@ public class GetAllVenuesQueryValidator : AbstractValidator<GetAllVenuesQuery>
             .MaximumLength(500)
             .WithMessage("El filtro de dirección no puede exceder los 500 caracteres.")
             .When(x => !string.IsNullOrEmpty(x.Address));
+
+        // Validar que el número de página sea mayor o igual a 1
+        RuleFor(x => x.PageNumber)
+            .GreaterThanOrEqualTo(1)
+            .WithMessage("El número de página debe ser mayor o igual a 1.")
+            .When(x => x.PageNumber != 0);
+
+        // Validar que el tamaño de página esté entre 1 y 100
+        RuleFor(x => x.PageSize)
+            .InclusiveBetween(1, 100)
+            .WithMessage("El tamaño de página debe estar entre 1 y 100.")
+            .When(x => x.PageSize != 0);
     }
 }

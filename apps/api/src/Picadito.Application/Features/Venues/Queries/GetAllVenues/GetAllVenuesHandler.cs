@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using Picadito.Application.Common.Interfaces;
+using Picadito.Application.Common.Models;
 using Picadito.Application.DTOs;
 using FluentValidation;
 using ErrorOr;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Logging;
 namespace Picadito.Application.Features.Venues.Queries.GetAllVenues;
 
 /// <summary>
-/// Handler para obtener todos los complejos deportivos.
+/// Handler para obtener todos los complejos deportivos con paginación.
 /// Acceso público (sin autenticación).
 /// </summary>
 public class GetAllVenuesHandler(
@@ -19,11 +20,11 @@ public class GetAllVenuesHandler(
 {
     private readonly ILogger<GetAllVenuesHandler> _logger = logger;
 
-    public async Task<ErrorOr<List<VenueDto>>> Handle(GetAllVenuesQuery request, CancellationToken cancellationToken)
+    public async Task<ErrorOr<PagedResponse<VenueDto>>> Handle(GetAllVenuesQuery request, CancellationToken cancellationToken)
     {
         _logger.LogInformation(
-            "GetAllVenues requested: Name={Name}, Address={Address}, IsActive={IsActive}",
-            request.Name, request.Address, request.IsActive);
+            "GetAllVenues requested: Name={Name}, Address={Address}, IsActive={IsActive}, PageNumber={PageNumber}, PageSize={PageSize}",
+            request.Name, request.Address, request.IsActive, request.PageNumber, request.PageSize);
 
         // Validación usando FluentValidation
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
@@ -35,17 +36,33 @@ public class GetAllVenuesHandler(
                 Error.Validation(error.PropertyName, error.ErrorMessage));
         }
 
-        // Consulta sin autenticación (acceso público)
-        var venues = await venueRepository.GetAllAsync(
+        // Calcular el valor de skip basado en la fórmula: (PageNumber - 1) * PageSize
+        var skip = (request.PageNumber - 1) * request.PageSize;
+        _logger.LogDebug("Calculated skip value: {Skip} for PageNumber: {PageNumber}, PageSize: {PageSize}",
+            skip, request.PageNumber, request.PageSize);
+
+        // Consulta al repositorio con paginación
+        var result = await venueRepository.GetAllAsync(
             request.Name,
             request.Address,
             request.IsActive,
+            request.PageNumber,
+            request.PageSize,
             cancellationToken);
 
-        _logger.LogInformation(
-            "GetAllVenues completed: Count={Count}, Name={Name}, Address={Address}, IsActive={IsActive}",
-            venues.Count, request.Name, request.Address, request.IsActive);
+        if (result.IsError)
+        {
+            return result.Errors;
+        }
 
-        return venues;
+        _logger.LogInformation(
+            "GetAllVenues completed: PageNumber={PageNumber}, PageSize={PageSize}, ItemsCount={ItemsCount}, TotalCount={TotalCount}, TotalPages={TotalPages}",
+            result.Value.PageNumber,
+            result.Value.PageSize,
+            result.Value.Items.Count,
+            result.Value.TotalCount,
+            result.Value.TotalPages);
+
+        return result.Value;
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using Picadito.Domain.Entities;
 using Picadito.Application.DTOs;
+using Picadito.Application.Common.Models;
 using ErrorOr;
 
 namespace Picadito.Application.Common.Interfaces;
@@ -21,12 +22,21 @@ public interface IVenueRepository
     Task<ErrorOr<Guid>> AddAsync(Venue venue, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Obtiene todos los complejos deportivos con filtros opcionales.
+    /// Obtiene todos los complejos deportivos con filtros opcionales y paginación.
     /// </summary>
-    Task<List<VenueDto>> GetAllAsync(
+    /// <param name="name">Filtro por nombre (parcial, case-insensitive).</param>
+    /// <param name="address">Filtro por dirección (parcial, case-insensitive).</param>
+    /// <param name="isActive">Filtro por estado activo.</param>
+    /// <param name="pageNumber">Número de página a obtener (comienza en 1).</param>
+    /// <param name="pageSize">Cantidad de elementos por página.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>Respuesta paginada con los complejos deportivos y metadata de paginación.</returns>
+    Task<ErrorOr<PagedResponse<VenueDto>>> GetAllAsync(
         string? name,
         string? address,
         bool? isActive,
+        int pageNumber,
+        int pageSize,
         CancellationToken cancellationToken);
 
     /// <summary>

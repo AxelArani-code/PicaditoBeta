@@ -4,6 +4,7 @@ using System.Linq;
 using Picadito.Domain.Entities;
 using Picadito.Application.Common.Interfaces;
 using Picadito.Application.DTOs;
+using Picadito.Application.Common.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ErrorOr;
@@ -46,20 +47,24 @@ public class VenueRepository : IVenueRepository
         return venue.Id;
     }
 
-    public async Task<List<VenueDto>> GetAllAsync(
+    public async Task<ErrorOr<PagedResponse<VenueDto>>> GetAllAsync(
         string? name,
         string? address,
         bool? isActive,
+        int pageNumber,
+        int pageSize,
         CancellationToken cancellationToken)
     {
         var sw = Stopwatch.StartNew();
         try
         {
+            // Construir la consulta base con las inclusiones necesarias
             IQueryable<Venue> query = _context.Venues
                 .AsNoTracking()
                 .Include(v => v.Owner)
                 .Include(v => v.Pitches);
 
+            // Aplicar filtros opcionales
             if (!string.IsNullOrEmpty(name))
             {
                 query = query.Where(v => v.Name.ToLower().Contains(name.ToLower()));
@@ -75,8 +80,23 @@ public class VenueRepository : IVenueRepository
                 query = query.Where(v => v.IsActive == isActive.Value);
             }
 
+            // Obtener el conteo total de registros que coinciden con los filtros
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            // Calcular el total de páginas basado en el tamaño de página
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            // Calcular el salto (skip) basado en la página actual
+            // Fórmula: (pageNumber - 1) * pageSize
+            var skip = (pageNumber - 1) * pageSize;
+
+            // Aplicar ordenamiento determinista antes de la paginación
+            // Usamos CreatedAt como criterio principal y Id como desempate
             var venues = await query
-                .OrderBy(v => v.Name)
+                .OrderByDescending(v => v.CreatedAt)
+                .ThenBy(v => v.Id)
+                .Skip(skip)
+                .Take(pageSize)
                 .Select(v => new VenueDto
                 {
                     Id = v.Id,
@@ -100,25 +120,31 @@ public class VenueRepository : IVenueRepository
             if (sw.Elapsed >= SlowQueryThreshold)
             {
                 _logger.LogWarning(
-                    "[SLOW QUERY] GetAllAsync: ElapsedMs={ElapsedMs}, Name={Name}, Address={Address}, IsActive={IsActive}, Count={Count}",
-                    elapsedMs, name, address, isActive, venues.Count);
+                    "[SLOW QUERY] GetAllAsync (paginated): ElapsedMs={ElapsedMs}, PageNumber={PageNumber}, PageSize={PageSize}, Name={Name}, Address={Address}, IsActive={IsActive}, Count={Count}",
+                    elapsedMs, pageNumber, pageSize, name, address, isActive, venues.Count);
             }
             else
             {
                 _logger.LogInformation(
-                    "GetAllAsync completed: ElapsedMs={ElapsedMs}, Count={Count}",
-                    elapsedMs, venues.Count);
+                    "GetAllAsync (paginated) completed: ElapsedMs={ElapsedMs}, PageNumber={PageNumber}, PageSize={PageSize}, Count={Count}, TotalCount={TotalCount}",
+                    elapsedMs, pageNumber, pageSize, venues.Count, totalCount);
             }
 
-            return venues;
+            // Construir y retornar la respuesta paginada
+            return new PagedResponse<VenueDto>(
+                Items: venues,
+                PageNumber: pageNumber,
+                PageSize: pageSize,
+                TotalCount: totalCount,
+                TotalPages: totalPages);
         }
         catch (Exception ex)
         {
             sw.Stop();
             _logger.LogError(
                 ex,
-                "GetAllAsync error: ElapsedMs={ElapsedMs}, Name={Name}, Address={Address}, IsActive={IsActive}",
-                sw.ElapsedMilliseconds, name, address, isActive);
+                "GetAllAsync error: ElapsedMs={ElapsedMs}, PageNumber={PageNumber}, PageSize={PageSize}, Name={Name}, Address={Address}, IsActive={IsActive}",
+                sw.ElapsedMilliseconds, pageNumber, pageSize, name, address, isActive);
             throw;
         }
     }
