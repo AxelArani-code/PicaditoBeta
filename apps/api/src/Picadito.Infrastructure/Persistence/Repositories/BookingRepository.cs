@@ -6,6 +6,7 @@ using Picadito.Application.Common.Interfaces;
 using Picadito.Application.DTOs;
 using Picadito.Domain.Enums;
 using Picadito.Domain.Errors;
+using Picadito.Application.Common.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ErrorOr;
@@ -71,21 +72,24 @@ public class BookingRepository : IBookingRepository
         return booking.Id;
     }
 
-    public async Task<List<BookingDto>> GetAllAsync(
+    public async Task<ErrorOr<PagedResponse<BookingDto>>> GetAllAsync(
         Guid currentUserId,
         UserRole userRole,
         string? status,
         string? paymentStatus,
         Guid? pitchId,
+        int pageNumber,
+        int pageSize,
         CancellationToken cancellationToken)
     {
         var sw = Stopwatch.StartNew();
         try
         {
+            // Construir la consulta base con las inclusiones necesarias
             IQueryable<Booking> query = _context.Bookings
                 .AsNoTracking()
                 .Include(b => b.Pitch)
-                .ThenInclude(p => p.Venue)
+                    .ThenInclude(p => p.Venue)
                 .Include(b => b.User);
 
             // --- 🛡️ APLICACIÓN DE SEGURIDAD (BYPASS DE RLS EN C#) ---
@@ -103,6 +107,7 @@ public class BookingRepository : IBookingRepository
                 }
             }
 
+            // Aplicar filtros opcionales
             if (!string.IsNullOrEmpty(status))
             {
                 query = query.Where(b => b.Status.ToString().ToLower() == status.ToLower());
@@ -118,8 +123,23 @@ public class BookingRepository : IBookingRepository
                 query = query.Where(b => b.PitchId == pitchId.Value);
             }
 
+            // Obtener el conteo total de registros que coinciden con los filtros y la seguridad por rol
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            // Calcular el total de páginas basado en el tamaño de página
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            // Calcular el salto (skip) basado en la página actual
+            // Fórmula: (pageNumber - 1) * pageSize
+            var skip = (pageNumber - 1) * pageSize;
+
+            // Aplicar ordenamiento determinista por fecha de creación (más recientes primero)
+            // y aplicar paginación con Skip/Take
             var bookings = await query
                 .OrderByDescending(b => b.CreatedAt)
+                .ThenBy(b => b.Id)
+                .Skip(skip)
+                .Take(pageSize)
                 .Select(b => new BookingDto
                 {
                     Id = b.Id,
@@ -143,25 +163,31 @@ public class BookingRepository : IBookingRepository
             if (sw.Elapsed >= SlowQueryThreshold)
             {
                 _logger.LogWarning(
-                    "[SLOW QUERY] GetAllAsync: ElapsedMs={ElapsedMs}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, Count={Count}",
-                    elapsedMs, status, paymentStatus, pitchId, bookings.Count);
+                    "[SLOW QUERY] GetAllAsync (paginated): ElapsedMs={ElapsedMs}, PageNumber={PageNumber}, PageSize={PageSize}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, Count={Count}",
+                    elapsedMs, pageNumber, pageSize, status, paymentStatus, pitchId, bookings.Count);
             }
             else
             {
                 _logger.LogInformation(
-                    "GetAllAsync completed: ElapsedMs={ElapsedMs}, Count={Count}",
-                    elapsedMs, bookings.Count);
+                    "GetAllAsync (paginated) completed: ElapsedMs={ElapsedMs}, PageNumber={PageNumber}, PageSize={PageSize}, Count={Count}, TotalCount={TotalCount}",
+                    elapsedMs, pageNumber, pageSize, bookings.Count, totalCount);
             }
 
-            return bookings;
+            // Construir y retornar la respuesta paginada
+            return new PagedResponse<BookingDto>(
+                Items: bookings,
+                PageNumber: pageNumber,
+                PageSize: pageSize,
+                TotalCount: totalCount,
+                TotalPages: totalPages);
         }
         catch (Exception ex)
         {
             sw.Stop();
             _logger.LogError(
                 ex,
-                "GetAllAsync error: ElapsedMs={ElapsedMs}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}",
-                sw.ElapsedMilliseconds, status, paymentStatus, pitchId);
+                "GetAllAsync error: ElapsedMs={ElapsedMs}, PageNumber={PageNumber}, PageSize={PageSize}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}",
+                sw.ElapsedMilliseconds, pageNumber, pageSize, status, paymentStatus, pitchId);
             throw;
         }
     }

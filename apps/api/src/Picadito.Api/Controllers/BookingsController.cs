@@ -5,6 +5,7 @@ using Picadito.Application.Features.Bookings.Commands.RejectBooking;
 using Picadito.Application.Features.Bookings.Commands.CancelBooking;
 using Picadito.Application.Features.Bookings.Queries.GetBookings;
 using Picadito.Application.DTOs;
+using Picadito.Application.Common.Models;
 using ErrorOr;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
@@ -38,13 +39,13 @@ public class BookingsController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene todas las reservas con filtros opcionales.
+    /// Obtiene todas las reservas con filtros opcionales y paginación.
     /// </summary>
-    /// <param name="query">Filtros opcionales: Status, PaymentStatus, PitchId.</param>
+    /// <param name="query">Filtros opcionales: Status, PaymentStatus, PitchId, PageNumber, PageSize.</param>
     /// <param name="cancellationToken">Token de cancelación.</param>
-    /// <returns>Lista de reservas o errores.</returns>
+    /// <returns>Respuesta paginada con las reservas.</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(List<BookingDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<BookingDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetBookings(
