@@ -11,7 +11,15 @@ namespace Picadito.Application.Common.Interfaces;
 /// </summary>
 public interface IBookingRepository
 {
-    Task AddAsync(Booking booking, CancellationToken cancellationToken);
+    /// <summary>
+    /// Crea una nueva reserva.
+    /// </summary>
+    /// <param name="booking">Entidad de la reserva a crear.</param>
+    /// <param name="currentUserId">ID del usuario autenticado que realiza la operación.</param>
+    /// <param name="isAdmin">Indica si el usuario tiene rol de administrador.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>El ID de la reserva creada o un error.</returns>
+    Task<ErrorOr<Guid>> AddAsync(Booking booking, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken);
     
     /// <summary>
     /// Obtiene todas las reservas con filtros opcionales.

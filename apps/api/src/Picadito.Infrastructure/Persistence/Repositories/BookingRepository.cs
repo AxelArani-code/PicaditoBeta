@@ -27,10 +27,48 @@ public class BookingRepository : IBookingRepository
         _logger = logger;
     }
     
-    public async Task AddAsync(Booking booking, CancellationToken cancellationToken)
+    public async Task<ErrorOr<Guid>> AddAsync(Booking booking, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken)
     {
+        // Si no es admin, validar que el usuario sea el dueño de la reserva
+        if (!isAdmin)
+        {
+            // Verificar que el user_id de la reserva coincida con el usuario actual
+            if (booking.UserId != currentUserId)
+            {
+                // Verificar si el usuario es el dueño del Venue asociado a la cancha
+                var pitchVenueOwnerId = await _context.Pitches
+                    .Where(p => p.Id == booking.PitchId)
+                    .Select(p => p.Venue.OwnerId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (pitchVenueOwnerId != currentUserId)
+                {
+                    _logger.LogWarning(
+                        "Unauthorized booking creation attempt. BookingUserId: {BookingUserId}, PitchOwnerId: {PitchOwnerId}, CurrentUserId: {CurrentUserId}, IsAdmin: {IsAdmin}",
+                        booking.UserId, pitchVenueOwnerId, currentUserId, isAdmin);
+                    return Error.Unauthorized("Booking.Unauthorized", "No tienes permisos para crear esta reserva.");
+                }
+
+                _logger.LogInformation(
+                    "Venue owner creating booking for their pitch. VenueOwnerId: {VenueOwnerId}, PitchId: {PitchId}",
+                    currentUserId, booking.PitchId);
+            }
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Admin [Id] creando reserva para el usuario [TargetId]. AdminId: {AdminId}, TargetUserId: {TargetUserId}",
+                currentUserId, booking.UserId);
+        }
+
         await _context.Bookings.AddAsync(booking, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Booking created successfully. BookingId: {BookingId}, TimeSlotId: {TimeSlotId}, UserId: {UserId}, IsAdmin: {IsAdmin}",
+            booking.Id, booking.TimeSlotId, booking.UserId, isAdmin);
+
+        return booking.Id;
     }
 
     public async Task<List<BookingDto>> GetAllAsync(
