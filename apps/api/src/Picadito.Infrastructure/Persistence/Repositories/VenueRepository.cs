@@ -197,10 +197,44 @@ public class VenueRepository : IVenueRepository
             .AnyAsync(v => v.Id == venueId && v.OwnerId == userId && v.DeletedAt == null, cancellationToken);
     }
 
-    public async Task UpdateAsync(Venue venue, CancellationToken cancellationToken)
+    public async Task<ErrorOr<Success>> UpdateAsync(Venue venue, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken)
     {
+        // Regla de Oro: Si no es admin, verificar que el OwnerId original no haya sido modificado
+        // y que el usuario sea el dueño del recinto
+        if (!isAdmin)
+        {
+            // Verificar que el usuario sea el propietario del recinto
+            if (venue.OwnerId != currentUserId)
+            {
+                _logger.LogWarning(
+                    "Unauthorized venue update attempt. VenueId: {VenueId}, VenueOwnerId: {VenueOwnerId}, CurrentUserId: {CurrentUserId}, IsAdmin: {IsAdmin}",
+                    venue.Id, venue.OwnerId, currentUserId, isAdmin);
+                return Error.Unauthorized("Venue.Unauthorized", "No tienes permisos para editar este recinto.");
+            }
+
+            // Obtener el venue original desde la base de datos para comparar el OwnerId
+            var originalVenue = await _context.Venues
+                .AsNoTracking()
+                .FirstOrDefaultAsync(v => v.Id == venue.Id, cancellationToken);
+
+            if (originalVenue != null && originalVenue.OwnerId != venue.OwnerId)
+            {
+                // El venue_owner intentó cambiar el OwnerId, lo cual no está permitido
+                _logger.LogWarning(
+                    "Venue owner attempted to transfer ownership. VenueId: {VenueId}, OriginalOwnerId: {OriginalOwnerId}, NewOwnerId: {NewOwnerId}, UserId: {UserId}",
+                    venue.Id, originalVenue.OwnerId, venue.OwnerId, currentUserId);
+                return Error.Forbidden("Venue.CannotTransfer", "No tienes permisos para transferir la propiedad del recinto.");
+            }
+        }
+
         _context.Venues.Update(venue);
         await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Venue updated successfully. VenueId: {VenueId}, OwnerId: {OwnerId}, IsAdmin: {IsAdmin}",
+            venue.Id, venue.OwnerId, isAdmin);
+
+        return Result.Success;
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)

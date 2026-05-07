@@ -54,6 +54,7 @@ public class UpdateVenueHandler(
             // Extraer rol desde app_metadata (formato JSON)
             var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
             string? roleName = null;
+            bool isAdmin = false;
 
             if (!string.IsNullOrEmpty(rawRoleClaim))
             {
@@ -72,17 +73,29 @@ public class UpdateVenueHandler(
                 }
             }
 
+            // Determinar el rol del usuario y si es administrador
             if (!Enum.TryParse<UserRole>(roleName, true, out var userRole))
             {
                 _logger.LogWarning("Invalid role. Role: {Role}", roleName);
                 return Error.Forbidden(code: "Role.Invalid", description: $"El rol '{roleName}' no es reconocido.");
             }
 
-            // Verificar que el usuario tenga rol venue_owner
-            if (userRole != UserRole.venue_owner)
+            // Verificar si el usuario tiene rol de administrador
+            isAdmin = userRole == UserRole.admin;
+
+            // Lógica de negocio según el rol del usuario
+            if (userRole == UserRole.player)
             {
+                // Los jugadores no pueden actualizar recintos
+                _logger.LogWarning("Player role not authorized to update venues. UserId: {UserId}", userId);
+                return Error.Forbidden(description: "Los jugadores no pueden actualizar recintos.");
+            }
+
+            if (userRole != UserRole.venue_owner && !isAdmin)
+            {
+                // Roles no autorizados (ni venue_owner ni admin)
                 _logger.LogWarning("User role not authorized. UserId: {UserId}, Role: {Role}", userId, userRole);
-                return Error.Forbidden(description: "Solo los propietarios de complejos pueden crear venues.");
+                return Error.Forbidden(description: "No tienes permisos para actualizar recintos.");
             }
 
             // Verificar que el venue existe
@@ -93,12 +106,12 @@ public class UpdateVenueHandler(
                 return DomainErrors.Venue.NotFound;
             }
 
-            // Verificar propiedad: solo el owner puede modificar
-            if (venue.OwnerId != userId)
+            // Verificar propiedad: si no es admin, solo el owner puede modificar
+            if (!isAdmin && venue.OwnerId != userId)
             {
                 _logger.LogWarning(
-                    "Unauthorized update attempt. UserId: {UserId}, VenueOwnerId: {VenueOwnerId}, VenueId: {VenueId}",
-                    userId, venue.OwnerId, request.Id);
+                    "Unauthorized update attempt. UserId: {UserId}, VenueOwnerId: {VenueOwnerId}, VenueId: {VenueId}, IsAdmin: {IsAdmin}",
+                    userId, venue.OwnerId, request.Id, isAdmin);
                 return DomainErrors.Venue.Forbidden;
             }
 
@@ -138,8 +151,34 @@ public class UpdateVenueHandler(
                 venue.IsActive = request.IsActive.Value;
             }
 
-            // Persistir
-            await venueRepository.UpdateAsync(venue, cancellationToken);
+            // Solo el administrador puede cambiar el dueño del recinto
+            if (request.OwnerId.HasValue)
+            {
+                if (isAdmin)
+                {
+                    // Admin puede transferir la propiedad
+                    venue.OwnerId = request.OwnerId.Value;
+                    _logger.LogInformation(
+                        "Admin transferring venue ownership. VenueId: {VenueId}, NewOwnerId: {NewOwnerId}, AdminId: {AdminId}",
+                        venue.Id, request.OwnerId.Value, userId);
+                }
+                else
+                {
+                    // El venue_owner no puede cambiar el OwnerId
+                    _logger.LogWarning(
+                        "Venue owner attempted to change OwnerId. VenueId: {VenueId}, UserId: {UserId}",
+                        venue.Id, userId);
+                    return Error.Forbidden("Venue.CannotTransfer", "No tienes permisos para transferir la propiedad del recinto.");
+                }
+            }
+
+            // Persistir pasando el ID del usuario actual y el flag de administrador
+            var result = await venueRepository.UpdateAsync(venue, userId, isAdmin, cancellationToken);
+
+            if (result.IsError)
+            {
+                return result.Errors;
+            }
 
             _logger.LogInformation(
                 "Venue updated successfully. VenueId: {VenueId}, Name: {Name}",

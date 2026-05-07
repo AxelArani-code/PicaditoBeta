@@ -52,7 +52,12 @@ public interface IVenueRepository
     /// <summary>
     /// Actualiza un complejo deportivo.
     /// </summary>
-    Task UpdateAsync(Venue venue, CancellationToken cancellationToken);
+    /// <param name="venue">Entidad del complejo a actualizar.</param>
+    /// <param name="currentUserId">ID del usuario autenticado que realiza la operación.</param>
+    /// <param name="isAdmin">Indica si el usuario tiene rol de administrador.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>Resultado de la operación (éxito o error).</returns>
+    Task<ErrorOr<Success>> UpdateAsync(Venue venue, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken);
 
     /// <summary>
     /// Realiza un soft delete del complejo deportivo.

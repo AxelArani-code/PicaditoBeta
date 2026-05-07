@@ -15,4 +15,9 @@ public class UpdateVenueCommand
     public List<string>? Images { get; set; }
     public string? Description { get; set; }
     public bool? IsActive { get; set; }
+    
+    /// <summary>
+    /// ID del propietario del recinto. Solo los administradores pueden cambiar el dueño.
+    /// </summary>
+    public Guid? OwnerId { get; set; }
 }
