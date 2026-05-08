@@ -2,6 +2,7 @@ using System;
 using Picadito.Domain.Entities;
 using Picadito.Application.DTOs;
 using Picadito.Domain.Enums;
+using Picadito.Application.Common.Models;
 using ErrorOr;
 
 namespace Picadito.Application.Common.Interfaces;
@@ -11,15 +12,37 @@ namespace Picadito.Application.Common.Interfaces;
 /// </summary>
 public interface IBookingRepository
 {
-    Task AddAsync(Booking booking, CancellationToken cancellationToken);
+    /// <summary>
+    /// Crea una nueva reserva.
+    /// </summary>
+    /// <param name="booking">Entidad de la reserva a crear.</param>
+    /// <param name="currentUserId">ID del usuario autenticado que realiza la operación.</param>
+    /// <param name="isAdmin">Indica si el usuario tiene rol de administrador.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>El ID de la reserva creada o un error.</returns>
+    Task<ErrorOr<Guid>> AddAsync(Booking booking, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken);
     
     /// <summary>
-    /// Obtiene todas las reservas con filtros opcionales.
+    /// Obtiene todas las reservas con filtros opcionales y paginación.
+    /// Aplica seguridad por roles: admin ve todo, venue_owner ve sus complejos, player ve solo sus reservas.
     /// </summary>
-    Task<List<BookingDto>> GetAllAsync(
+    /// <param name="currentUserId">ID del usuario autenticado que realiza la consulta.</param>
+    /// <param name="userRole">Rol del usuario para aplicar filtros de seguridad.</param>
+    /// <param name="status">Filtro por estado de la reserva.</param>
+    /// <param name="paymentStatus">Filtro por estado de pago.</param>
+    /// <param name="pitchId">Filtro por ID de la cancha.</param>
+    /// <param name="pageNumber">Número de página a obtener (comienza en 1).</param>
+    /// <param name="pageSize">Cantidad de elementos por página.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>Respuesta paginada con las reservas y metadata de paginación.</returns>
+    Task<ErrorOr<PagedResponse<BookingDto>>> GetAllAsync(
+        Guid currentUserId,
+        UserRole userRole,
         string? status,
         string? paymentStatus,
         Guid? pitchId,
+        int pageNumber,
+        int pageSize,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -35,6 +58,7 @@ public interface IBookingRepository
         Guid id,
         BookingStatus newStatus,
         Guid ownerId,
+        bool isAdmin,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -64,6 +88,7 @@ public interface IBookingRepository
     Task<ErrorOr<Success>> CancelAsync(
         Guid id,
         Guid ownerId,
+        bool isAdmin,
         CancellationToken cancellationToken);
     /// <summary>
     /// Obtiene una reserva por su ID con la información del Venue para validar la propiedad.

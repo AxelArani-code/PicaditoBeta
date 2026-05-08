@@ -22,6 +22,13 @@ public class VenueConfiguration : IEntityTypeConfiguration<Venue>
         builder.Property(e => e.OwnerId).HasColumnName("owner_id");
         builder.Property(e => e.Name).HasColumnName("name");
         builder.Property(e => e.Address).HasColumnName("address");
+        builder.Property(e => e.City).HasColumnName("city");
+        builder.Property(e => e.Phone).HasColumnName("phone");
+        builder.Property(e => e.Images)            
+            .HasColumnName("images")
+            .HasColumnType("text[]")
+            .HasDefaultValueSql("'{}'::text[]") // Array vacío por defecto
+            ;
         builder.Property(e => e.Description).HasColumnName("description");
         builder.Property(e => e.IsActive)
             .HasColumnName("is_active")
@@ -38,5 +45,11 @@ public class VenueConfiguration : IEntityTypeConfiguration<Venue>
 
         // Filtro global: solo venues no eliminados
         builder.HasQueryFilter(v => v.DeletedAt == null);
+
+        // Relacion con Profile (Owner)
+        builder.HasOne(v => v.Owner)
+            .WithMany()
+            .HasForeignKey(v => v.OwnerId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

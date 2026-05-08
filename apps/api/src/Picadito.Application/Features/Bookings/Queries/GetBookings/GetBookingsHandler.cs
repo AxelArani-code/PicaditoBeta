@@ -2,16 +2,19 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using Picadito.Application.Common.Interfaces;
+using Picadito.Application.Common.Models;
 using Picadito.Application.DTOs;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
+using Picadito.Domain.Enums;
 using ErrorOr;
 
 namespace Picadito.Application.Features.Bookings.Queries.GetBookings;
 
 /// <summary>
-/// Handler para procesar GetBookingsQuery.
+/// Handler para procesar GetBookingsQuery con paginación.
 /// </summary>
 public class GetBookingsHandler(
     IBookingRepository bookingRepository,
@@ -21,17 +24,19 @@ public class GetBookingsHandler(
 {
     private readonly ILogger<GetBookingsHandler> _logger = logger;
     
-    public async Task<ErrorOr<List<BookingDto>>> Handle(GetBookingsQuery request, CancellationToken cancellationToken)
+    public async Task<ErrorOr<PagedResponse<BookingDto>>> Handle(GetBookingsQuery request, CancellationToken cancellationToken)
     {
         var sw = Stopwatch.StartNew();
 
         var user = httpContextAccessor.HttpContext?.User;
         
+        /// Verificar si usuario es autenticado
         if (user?.Identity?.IsAuthenticated != true)
         {
             return Error.Unauthorized(description: "Usuario no autenticado.");
         }
 
+        /// Obtener el usuario y verificar si existe
         var userIdClaim = httpContextAccessor.HttpContext?.User
             .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         
@@ -40,8 +45,37 @@ public class GetBookingsHandler(
             return Error.Unauthorized(description: "No se pudo identificar al usuario.");
         }
 
-        _logger.LogInformation("GetBookings request started: UserId={UserId}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}",
-            userIdClaim, request.Status, request.PaymentStatus, request.PitchId);
+        var userId = Guid.Parse(userIdClaim);
+
+        // Extraer rol desde app_metadata (formato JSON)
+        var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
+        string? roleName = null;
+
+        if (!string.IsNullOrEmpty(rawRoleClaim))
+        {
+            try
+            {
+                using var jsonDoc = JsonDocument.Parse(rawRoleClaim);
+                if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
+                {
+                    roleName = roleElement.GetString();
+                }
+            }
+            catch
+            {
+                _logger.LogWarning("Invalid role format in token");
+                return Error.Unauthorized(description: "El formato del rol en el token es inválido.");
+            }
+        }
+
+        if (!Enum.TryParse<UserRole>(roleName, true, out var userRole))
+        {
+            _logger.LogWarning("Invalid role. Role: {Role}", roleName);
+            return Error.Forbidden(code: "Role.Invalid", description: $"El rol '{roleName}' no es reconocido.");
+        }
+
+        _logger.LogInformation("GetBookings request started: UserId={UserId}, Role={Role}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, PageNumber={PageNumber}, PageSize={PageSize}",
+            userIdClaim, userRole, request.Status, request.PaymentStatus, request.PitchId, request.PageNumber, request.PageSize);
 
         try
         {
@@ -54,11 +88,26 @@ public class GetBookingsHandler(
                     Error.Validation(error.PropertyName, error.ErrorMessage));
             }
 
-            var bookings = await bookingRepository.GetAllAsync(
+            // Calcular el valor de skip basado en la fórmula: (PageNumber - 1) * PageSize
+            var skip = (request.PageNumber - 1) * request.PageSize;
+            _logger.LogDebug("Calculated skip value: {Skip} for PageNumber: {PageNumber}, PageSize: {PageSize}",
+                skip, request.PageNumber, request.PageSize);
+
+            // Consulta al repositorio con paginación y filtros de seguridad por rol
+            var result = await bookingRepository.GetAllAsync(
+                userId,
+                userRole,
                 request.Status,
                 request.PaymentStatus,
                 request.PitchId,
+                request.PageNumber,
+                request.PageSize,
                 cancellationToken);
+
+            if (result.IsError)
+            {
+                return result.Errors;
+            }
 
             sw.Stop();
             var elapsedMs = sw.ElapsedMilliseconds;
@@ -66,17 +115,17 @@ public class GetBookingsHandler(
             if (elapsedMs > 500)
             {
                 _logger.LogWarning(
-                    "[SLOW QUERY] GetBookings: ElapsedMs={ElapsedMs}, UserId={UserId}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, Count={Count}",
-                    elapsedMs, userIdClaim, request.Status, request.PaymentStatus, request.PitchId, bookings.Count);
+                    "[SLOW QUERY] GetBookings: ElapsedMs={ElapsedMs}, UserId={UserId}, Role={Role}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, PageNumber={PageNumber}, PageSize={PageSize}, ItemsCount={ItemsCount}, TotalCount={TotalCount}",
+                    elapsedMs, userIdClaim, userRole, request.Status, request.PaymentStatus, request.PitchId, request.PageNumber, request.PageSize, result.Value.Items.Count, result.Value.TotalCount);
             }
             else
             {
                 _logger.LogInformation(
-                    "GetBookings completed: ElapsedMs={ElapsedMs}, UserId={UserId}, Count={Count}",
-                    elapsedMs, userIdClaim, bookings.Count);
+                    "GetBookings completed: ElapsedMs={ElapsedMs}, UserId={UserId}, Role={Role}, PageNumber={PageNumber}, PageSize={PageSize}, ItemsCount={ItemsCount}, TotalCount={TotalCount}",
+                    elapsedMs, userIdClaim, userRole, request.PageNumber, request.PageSize, result.Value.Items.Count, result.Value.TotalCount);
             }
 
-            return bookings;
+            return result.Value;
         }
         catch (Exception ex)
         {

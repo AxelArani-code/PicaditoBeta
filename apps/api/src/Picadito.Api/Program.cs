@@ -17,6 +17,11 @@ using Picadito.Application.Features.Bookings.Queries.GetBookings;
 using Picadito.Application.Features.Bookings.Commands.ConfirmBooking;
 using Picadito.Application.Features.Bookings.Commands.RejectBooking;
 using Picadito.Application.Features.Bookings.Commands.CancelBooking;
+using Picadito.Application.Features.Venues.Commands.CreateVenue;
+using Picadito.Application.Features.Venues.Commands.UpdateVenue;
+using Picadito.Application.Features.Venues.Commands.DeleteVenue;
+using Picadito.Application.Features.Venues.Queries.GetAllVenues;
+using Picadito.Application.Features.Venues.Queries.GetVenueById;
 using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -47,6 +52,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
 builder.Services.AddScoped<IPitchRepository, PitchRepository>();
+builder.Services.AddScoped<IVenueRepository, VenueRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 builder.Services.AddScoped<ConfirmBookingHandler>();
 builder.Services.AddScoped<RejectBookingHandler>();
@@ -54,8 +60,18 @@ builder.Services.AddScoped<CancelBookingHandler>();
 builder.Services.AddScoped<GetBookingsHandler>();
 builder.Services.AddScoped<GetAllPitchesHandler>();
 
+// Venue Handlers
+builder.Services.AddScoped<CreateVenueHandler>();
+builder.Services.AddScoped<UpdateVenueHandler>();
+builder.Services.AddScoped<DeleteVenueHandler>();
+builder.Services.AddScoped<GetAllVenuesHandler>();
+builder.Services.AddScoped<GetVenueByIdHandler>();
+
 // Validaciones
 builder.Services.AddValidatorsFromAssemblyContaining<CreateBookingCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateVenueCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateVenueCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetAllVenuesQueryValidator>();
 
 // ==========================================
 // 3. SEGURIDAD (JWT & Auth)

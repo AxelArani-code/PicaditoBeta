@@ -67,9 +67,10 @@ public class CreateBookingHandler(
             }
             var userId = Guid.Parse(userIdClaim);
 
-            // Logica de politica: Un venue_owner solo puede crear reservas para sus propias canchas.
+            // Extraer rol desde app_metadata (formato JSON)
             var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
             string? roleName = null;
+            bool isAdmin = false;
 
             // Parsing para extraer el rol
             if (!string.IsNullOrEmpty(rawRoleClaim))
@@ -89,28 +90,42 @@ public class CreateBookingHandler(
                 }
             }
 
+            // Determinar el rol del usuario y si es administrador
             if (!Enum.TryParse<UserRole>(roleName, true, out var userRole))
             {
                 _logger.LogWarning("Invalid role. Role: {Role}", roleName);
                 return Error.Forbidden(code: "Role.Invalid", description: $"El rol '{roleName}' no es reconocido.");
             }
 
-            // Politica de seguridad segun rol
-            if (userRole == UserRole.venue_owner)
+            // Verificar si el usuario tiene rol de administrador
+            isAdmin = userRole == UserRole.admin;
+
+            // Lógica de negocio según el rol del usuario
+            if (userRole == UserRole.player)
+            {
+                // El Player solo puede reservar para sí mismo
+                _logger.LogInformation("Player {UserId} is creating a booking.", userId);
+            }
+            else if (userRole == UserRole.venue_owner)
             {
                 // Si es Dueño, verificamos que la cancha (Pitch) le pertenezca
                 var isOwner = await pitchRepository.IsOwnerAsync(timeSlot.PitchId, userId, cancellationToken);
                 if (!isOwner) 
                 {
-                    _logger.LogWarning("El usuario no es dueño de un cancha. UserId: {UserId}, PitchId: {PitchId}", 
+                    _logger.LogWarning("El usuario no es dueño de la cancha. UserId: {UserId}, PitchId: {PitchId}", 
                         userId, timeSlot.PitchId);
                     return Error.Forbidden(description: "No podés reservar en canchas que no son tuyas.");
                 }
             }
-            else if (userRole != UserRole.player)
+            else if (isAdmin)
             {
-                // Si no es ni Player ni Owner, bloqueamos por seguridad
-                _logger.LogWarning("User role not authorized. Role: {Role}", userRole);
+                // El Admin tiene "vía libre": puede crear reservas en cualquier cancha
+                _logger.LogInformation("Admin {UserId} is creating a booking.", userId);
+            }
+            else 
+            {
+                // Si no es ni Player, Owner ni Admin, bloqueamos por seguridad
+                _logger.LogWarning("User role not recognized. Role: {Role}", userRole);
                 return Error.Forbidden(description: "Tu perfil no tiene permisos para crear reservas.");
             }
 
@@ -122,22 +137,43 @@ public class CreateBookingHandler(
                 return DomainErrors.Booking.SlotAlreadyTaken;
             }
 
+            // Determinar el UserId según el rol del usuario
+            Guid bookingUserId;
+            if (isAdmin && request.UserId.HasValue)
+            {
+                // Si es admin y el comando trae un UserId, usar ese ID para la reserva
+                bookingUserId = request.UserId.Value;
+                _logger.LogInformation(
+                    "Admin [Id] creando reserva para el usuario [TargetId]. AdminId: {AdminId}, TargetUserId: {TargetUserId}",
+                    userId, bookingUserId);
+            }
+            else
+            {
+                // Para cualquier otro rol, ignorar el UserId del comando y forzar el uso del ID del usuario logueado
+                bookingUserId = userId;
+            }
+
             // Mapear de Command a Entidad de Dominio
             var booking = new Booking(
                 request.TimeSlotId,
                 timeSlot.PitchId,
                 timeSlot.Date,
-                userId,
+                bookingUserId,
                 timeSlot.Price);
 
             // Persistir usando el repositorio (EF Core)
-            await bookingRepository.AddAsync(booking, cancellationToken);
+            var result = await bookingRepository.AddAsync(booking, userId, isAdmin, cancellationToken);
+
+            if (result.IsError)
+            {
+                return result.Errors;
+            }
 
             _logger.LogInformation("Booking created successfully. BookingId: {BookingId}, PitchId: {PitchId}, TimeSlotId: {TimeSlotId}", 
-                booking.Id, timeSlot.PitchId, request.TimeSlotId);
+                result.Value, timeSlot.PitchId, request.TimeSlotId);
 
             // Retornar el ID generado
-            return booking.Id;
+            return result.Value;
         }
     }
 }

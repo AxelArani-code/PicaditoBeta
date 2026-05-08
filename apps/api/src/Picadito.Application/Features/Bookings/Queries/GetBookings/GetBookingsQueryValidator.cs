@@ -24,5 +24,17 @@ public class GetBookingsQueryValidator : AbstractValidator<GetBookingsQuery>
             .NotEqual(Guid.Empty)
             .When(x => x.PitchId.HasValue)
             .WithMessage("El ID de la cancha proporcionado no es válido.");
+
+        // Validar que el número de página sea mayor o igual a 1
+        RuleFor(x => x.PageNumber)
+            .GreaterThanOrEqualTo(1)
+            .WithMessage("El número de página debe ser mayor o igual a 1.")
+            .When(x => x.PageNumber != 0);
+
+        // Validar que el tamaño de página esté entre 1 y 100
+        RuleFor(x => x.PageSize)
+            .InclusiveBetween(1, 100)
+            .WithMessage("El tamaño de página debe estar entre 1 y 100.")
+            .When(x => x.PageSize != 0);
     }
 }

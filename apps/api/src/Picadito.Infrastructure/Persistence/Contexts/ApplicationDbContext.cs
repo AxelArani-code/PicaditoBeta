@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TimeSlot> TimeSlots => Set<TimeSlot>();
     public DbSet<Pitch> Pitches => Set<Pitch>();
     public DbSet<Profile> Profiles => Set<Profile>();
+    public DbSet<Venue> Venues => Set<Venue>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

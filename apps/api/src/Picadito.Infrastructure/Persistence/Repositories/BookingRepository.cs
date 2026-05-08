@@ -6,6 +6,7 @@ using Picadito.Application.Common.Interfaces;
 using Picadito.Application.DTOs;
 using Picadito.Domain.Enums;
 using Picadito.Domain.Errors;
+using Picadito.Application.Common.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ErrorOr;
@@ -27,26 +28,86 @@ public class BookingRepository : IBookingRepository
         _logger = logger;
     }
     
-    public async Task AddAsync(Booking booking, CancellationToken cancellationToken)
+    public async Task<ErrorOr<Guid>> AddAsync(Booking booking, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken)
     {
+        // Si no es admin, validar que el usuario sea el dueño de la reserva
+        if (!isAdmin)
+        {
+            // Verificar que el user_id de la reserva coincida con el usuario actual
+            if (booking.UserId != currentUserId)
+            {
+                // Verificar si el usuario es el dueño del Venue asociado a la cancha
+                var pitchVenueOwnerId = await _context.Pitches
+                    .Where(p => p.Id == booking.PitchId)
+                    .Select(p => p.Venue.OwnerId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (pitchVenueOwnerId != currentUserId)
+                {
+                    _logger.LogWarning(
+                        "Unauthorized booking creation attempt. BookingUserId: {BookingUserId}, PitchOwnerId: {PitchOwnerId}, CurrentUserId: {CurrentUserId}, IsAdmin: {IsAdmin}",
+                        booking.UserId, pitchVenueOwnerId, currentUserId, isAdmin);
+                    return Error.Unauthorized("Booking.Unauthorized", "No tienes permisos para crear esta reserva.");
+                }
+
+                _logger.LogInformation(
+                    "Venue owner creating booking for their pitch. VenueOwnerId: {VenueOwnerId}, PitchId: {PitchId}",
+                    currentUserId, booking.PitchId);
+            }
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Admin [Id] creando reserva para el usuario [TargetId]. AdminId: {AdminId}, TargetUserId: {TargetUserId}",
+                currentUserId, booking.UserId);
+        }
+
         await _context.Bookings.AddAsync(booking, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Booking created successfully. BookingId: {BookingId}, TimeSlotId: {TimeSlotId}, UserId: {UserId}, IsAdmin: {IsAdmin}",
+            booking.Id, booking.TimeSlotId, booking.UserId, isAdmin);
+
+        return booking.Id;
     }
 
-    public async Task<List<BookingDto>> GetAllAsync(
+    public async Task<ErrorOr<PagedResponse<BookingDto>>> GetAllAsync(
+        Guid currentUserId,
+        UserRole userRole,
         string? status,
         string? paymentStatus,
         Guid? pitchId,
+        int pageNumber,
+        int pageSize,
         CancellationToken cancellationToken)
     {
         var sw = Stopwatch.StartNew();
         try
         {
+            // Construir la consulta base con las inclusiones necesarias
             IQueryable<Booking> query = _context.Bookings
                 .AsNoTracking()
                 .Include(b => b.Pitch)
+                    .ThenInclude(p => p.Venue)
                 .Include(b => b.User);
 
+            // --- 🛡️ APLICACIÓN DE SEGURIDAD (BYPASS DE RLS EN C#) ---
+            if (userRole != UserRole.admin)
+            {
+                if (userRole == UserRole.venue_owner)
+                {
+                    // Un dueño solo ve las reservas de sus complejos
+                    query = query.Where(b => b.Pitch.Venue.OwnerId == currentUserId);
+                }
+                else
+                {
+                    // Un player solo ve sus propias reservas
+                    query = query.Where(b => b.UserId == currentUserId);
+                }
+            }
+
+            // Aplicar filtros opcionales
             if (!string.IsNullOrEmpty(status))
             {
                 query = query.Where(b => b.Status.ToString().ToLower() == status.ToLower());
@@ -62,8 +123,23 @@ public class BookingRepository : IBookingRepository
                 query = query.Where(b => b.PitchId == pitchId.Value);
             }
 
+            // Obtener el conteo total de registros que coinciden con los filtros y la seguridad por rol
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            // Calcular el total de páginas basado en el tamaño de página
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            // Calcular el salto (skip) basado en la página actual
+            // Fórmula: (pageNumber - 1) * pageSize
+            var skip = (pageNumber - 1) * pageSize;
+
+            // Aplicar ordenamiento determinista por fecha de creación (más recientes primero)
+            // y aplicar paginación con Skip/Take
             var bookings = await query
                 .OrderByDescending(b => b.CreatedAt)
+                .ThenBy(b => b.Id)
+                .Skip(skip)
+                .Take(pageSize)
                 .Select(b => new BookingDto
                 {
                     Id = b.Id,
@@ -87,25 +163,31 @@ public class BookingRepository : IBookingRepository
             if (sw.Elapsed >= SlowQueryThreshold)
             {
                 _logger.LogWarning(
-                    "[SLOW QUERY] GetAllAsync: ElapsedMs={ElapsedMs}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, Count={Count}",
-                    elapsedMs, status, paymentStatus, pitchId, bookings.Count);
+                    "[SLOW QUERY] GetAllAsync (paginated): ElapsedMs={ElapsedMs}, PageNumber={PageNumber}, PageSize={PageSize}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, Count={Count}",
+                    elapsedMs, pageNumber, pageSize, status, paymentStatus, pitchId, bookings.Count);
             }
             else
             {
                 _logger.LogInformation(
-                    "GetAllAsync completed: ElapsedMs={ElapsedMs}, Count={Count}",
-                    elapsedMs, bookings.Count);
+                    "GetAllAsync (paginated) completed: ElapsedMs={ElapsedMs}, PageNumber={PageNumber}, PageSize={PageSize}, Count={Count}, TotalCount={TotalCount}",
+                    elapsedMs, pageNumber, pageSize, bookings.Count, totalCount);
             }
 
-            return bookings;
+            // Construir y retornar la respuesta paginada
+            return new PagedResponse<BookingDto>(
+                Items: bookings,
+                PageNumber: pageNumber,
+                PageSize: pageSize,
+                TotalCount: totalCount,
+                TotalPages: totalPages);
         }
         catch (Exception ex)
         {
             sw.Stop();
             _logger.LogError(
                 ex,
-                "GetAllAsync error: ElapsedMs={ElapsedMs}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}",
-                sw.ElapsedMilliseconds, status, paymentStatus, pitchId);
+                "GetAllAsync error: ElapsedMs={ElapsedMs}, PageNumber={PageNumber}, PageSize={PageSize}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}",
+                sw.ElapsedMilliseconds, pageNumber, pageSize, status, paymentStatus, pitchId);
             throw;
         }
     }
@@ -118,6 +200,7 @@ public class BookingRepository : IBookingRepository
         Guid id,
         BookingStatus newStatus,
         Guid ownerId,
+        bool isAdmin,
         CancellationToken cancellationToken)
     {
         // Cargamos la reserva con su Pitch y Venue para validar propiedad
@@ -141,7 +224,7 @@ public class BookingRepository : IBookingRepository
 
         // Verificar que el usuario sea el propietario del Venue
         // IMPORTANTE: Esta validación es crítica para la seguridad
-        if (booking.Pitch.Venue.OwnerId != ownerId)
+        if (!isAdmin && booking.Pitch.Venue.OwnerId != ownerId)
         {
             return Error.Unauthorized(
                 "Booking.NotAuthorized",
@@ -182,6 +265,7 @@ public class BookingRepository : IBookingRepository
     public async Task<ErrorOr<Success>> CancelAsync(
         Guid id,
         Guid ownerId,
+        bool isAdmin,
         CancellationToken cancellationToken)
     {
         var booking = await _context.Bookings
@@ -194,7 +278,11 @@ public class BookingRepository : IBookingRepository
             return DomainErrors.Booking.NotFound;
         }
 
-        if (booking.Pitch.Venue.OwnerId != ownerId)
+         // --- REGLA DE SEGURIDAD DEL REPOSITORIO ---
+        bool isTheOwner = booking.Pitch.Venue.OwnerId == ownerId;
+        bool isThePlayer = booking.UserId == ownerId;
+
+        if (!isAdmin && !isTheOwner && !isThePlayer)
         {
             return DomainErrors.Booking.Unauthorized;
         }
