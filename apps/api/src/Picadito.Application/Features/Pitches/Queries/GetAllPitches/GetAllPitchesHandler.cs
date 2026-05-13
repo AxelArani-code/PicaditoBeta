@@ -3,8 +3,10 @@ using Picadito.Application.Common.Interfaces;
 using Picadito.Application.DTOs;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using ErrorOr;
 using System.Text.Json;
+using System.Diagnostics;
 
 namespace Picadito.Application.Features.Pitches.Queries.GetAllPitches;
 
@@ -16,8 +18,11 @@ namespace Picadito.Application.Features.Pitches.Queries.GetAllPitches;
 public class GetAllPitchesHandler(
     IPitchRepository pitchRepository,
     IValidator<GetAllPitchesQuery> validator,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    ILogger<GetAllPitchesHandler> logger)
 {
+    private readonly ILogger<GetAllPitchesHandler> _logger = logger;
+
     /// <summary>
     /// Procesa la solicitud de listar todas las canchas.
     /// </summary>
@@ -26,24 +31,15 @@ public class GetAllPitchesHandler(
     /// <returns>Lista de DTOs de canchas o errores.</returns>
     public async Task<ErrorOr<List<PitchDto>>> Handle(GetAllPitchesQuery request, CancellationToken cancellationToken)
     {
-        // Logica de validación usando FluentValidation
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            return validationResult.Errors.ConvertAll(error => 
-                Error.Validation(error.PropertyName, error.ErrorMessage));
-        }
+        var sw = Stopwatch.StartNew();
 
-        // Logica de JWT: Verificación de contexto de seguridad
         var user = httpContextAccessor.HttpContext?.User;
         
-        // Verificamos que el usuario esté autenticado
         if (user?.Identity?.IsAuthenticated != true)
         {
             return Error.Unauthorized(description: "Usuario no autenticado.");
         }
 
-        // Extracción del userId del JWT para auditoria o lógica de negocio
         var userIdClaim = httpContextAccessor.HttpContext?.User
             .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         
@@ -52,36 +48,69 @@ public class GetAllPitchesHandler(
             return Error.Unauthorized(description: "No se pudo identificar al usuario.");
         }
 
-        // Extracción del rol del usuario desde app_metadata (Supabase)
-        var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
-        string? roleName = null;
+        _logger.LogInformation("GetAllPitches request started: UserId={UserId}, VenueId={VenueId}, Type={Type}, Surface={Surface}",
+            userIdClaim, request.VenueId, request.Type, request.Surface);
 
-        if (!string.IsNullOrEmpty(rawRoleClaim))
+        try
         {
-            try
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
             {
-                using var jsonDoc = JsonDocument.Parse(rawRoleClaim);
-                if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
+                _logger.LogWarning("GetAllPitches validation failed: UserId={UserId}, Errors={Errors}",
+                    userIdClaim, string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                return validationResult.Errors.ConvertAll(error => 
+                    Error.Validation(error.PropertyName, error.ErrorMessage));
+            }
+
+            var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
+            string? roleName = null;
+
+            if (!string.IsNullOrEmpty(rawRoleClaim))
+            {
+                try
                 {
-                    roleName = roleElement.GetString();
+                    using var jsonDoc = JsonDocument.Parse(rawRoleClaim);
+                    if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
+                    {
+                        roleName = roleElement.GetString();
+                    }
+                }
+                catch
+                {
                 }
             }
-            catch
+
+            var pitches = await pitchRepository.GetAllAsync(
+                request.VenueId, 
+                request.Type, 
+                request.Surface, 
+                cancellationToken
+                );
+
+            sw.Stop();
+            var elapsedMs = sw.ElapsedMilliseconds;
+
+            if (elapsedMs > 500)
             {
-                // Si falla el parsing, continuamos sin rol (se permite acceso público si está autenticado)
+                _logger.LogWarning(
+                    "[SLOW QUERY] GetAllPitches: ElapsedMs={ElapsedMs}, UserId={UserId}, VenueId={VenueId}, Type={Type}, Surface={Surface}, Count={Count}",
+                    elapsedMs, userIdClaim, request.VenueId, request.Type, request.Surface, pitches.Count);
             }
+            else
+            {
+                _logger.LogInformation(
+                    "GetAllPitches completed: ElapsedMs={ElapsedMs}, UserId={UserId}, Count={Count}",
+                    elapsedMs, userIdClaim, pitches.Count);
+            }
+
+            return pitches;
         }
-
-        // Logica de negocio: Obtener todas las canchas activas
-        // Se agregan parametros de filtrado opcionales.
-        var pitches = await pitchRepository.GetAllAsync(
-            request.VenueId, 
-            request.Type, 
-            request.Surface, 
-            cancellationToken
-            );
-
-        // Retornamos la lista de canchas
-        return pitches;
+        catch (Exception ex)
+        {
+            sw.Stop();
+            _logger.LogError(ex, "GetAllPitches error: UserId={UserId}, ElapsedMs={ElapsedMs}",
+                userIdClaim, sw.ElapsedMilliseconds);
+            throw;
+        }
     }
 }
