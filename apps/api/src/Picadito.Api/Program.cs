@@ -6,6 +6,7 @@ using Picadito.Domain.Enums;
 using Picadito.Infrastructure.Persistence.Repositories;
 using Picadito.Infrastructure.Persistence;
 using Picadito.Application.Features.Bookings.Commands.CreateBooking;
+using Picadito.Application.Features.Pitches.Commands.CreatePitch;
 using Picadito.Application.Features.Pitches.Queries.GetAllPitches;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -58,6 +59,7 @@ builder.Services.AddScoped<ConfirmBookingHandler>();
 builder.Services.AddScoped<RejectBookingHandler>();
 builder.Services.AddScoped<CancelBookingHandler>();
 builder.Services.AddScoped<GetBookingsHandler>();
+builder.Services.AddScoped<CreatePitchHandler>();
 builder.Services.AddScoped<GetAllPitchesHandler>();
 
 // Venue Handlers
@@ -69,6 +71,7 @@ builder.Services.AddScoped<GetVenueByIdHandler>();
 
 // Validaciones
 builder.Services.AddValidatorsFromAssemblyContaining<CreateBookingCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreatePitchValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateVenueCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<UpdateVenueCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<GetAllVenuesQueryValidator>();

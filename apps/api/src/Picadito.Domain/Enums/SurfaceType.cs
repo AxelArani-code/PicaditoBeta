@@ -5,8 +5,8 @@ namespace Picadito.Domain.Enums;
 /// </summary>
 public enum SurfaceType
 {
-    CespedNatural, // cesped_natural
-    Sintetico,     // sintetico
-    Cemento,       // cemento
-    Parquet        // parquet
+    cespedNatural, // cesped_natural
+    sintetico,     // sintetico
+    cemento,       // cemento
+    parquet        // parquet
 }

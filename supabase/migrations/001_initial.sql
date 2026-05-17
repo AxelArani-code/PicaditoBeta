@@ -49,8 +49,8 @@ CREATE TABLE pitches (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    type pitch_type NOT NULL,
-    surface pitch_surface NOT NULL,
+    type TEXT NOT NULL CONSTRAINT check_pitch_type CHECK (type IN ('5v5', '7v7', '9v9', '11v11')),
+    surface TEXT NOT NULL CONSTRAINT check_pitch_surface CHECK (surface IN ('cesped_natural', 'sintetico', 'cemento', 'parquet')),
     price_per_hour NUMERIC(10,2) NOT NULL,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -381,6 +381,17 @@ CREATE TRIGGER set_booking_denormalized_data_trigger
   FOR EACH ROW EXECUTE FUNCTION set_booking_denormalized_data();
 
 
+-- funcion helper para bypass de admin en RLS
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- ==========================================
 -- 6. ROW LEVEL SECURITY (RLS)
 -- ==========================================
@@ -425,10 +436,28 @@ FOR UPDATE USING (
 );
 
 -- PITCHES
-CREATE POLICY "Pitches viewable by everyone if not deleted" ON pitches FOR SELECT USING (deleted_at IS NULL);
-CREATE POLICY "Venue owners can manage pitches" ON pitches FOR ALL USING (
-  EXISTS(SELECT 1 FROM venues WHERE id = venue_id AND owner_id = auth.uid())
+CREATE POLICY "Pitches visibility by role" ON pitches 
+FOR SELECT USING (
+  is_admin() -- 1. Admin ve todo (activas e inactivas)
+  OR (
+    deleted_at IS NULL AND (
+      is_active = true -- 2. Jugadores solo ven activas
+      OR auth.uid() = (SELECT v.owner_id FROM venues v WHERE v.id = venue_id) -- 3. Dueño ve sus inactivas
+    )
+  )
 );
+CREATE POLICY "Admins and Venue owners can update pitches" ON pitches 
+FOR ALL 
+USING (
+  public.is_admin() -- Bypass total si la función retorna true
+  OR 
+  EXISTS (
+      SELECT 1 FROM venues 
+      WHERE venues.id = pitches.venue_id -- El DUEÑO puede gestionar si la cancha pertenece a su local
+      AND venues.owner_id = auth.uid()
+  )
+);
+
 
 -- AVAILABILITY RULES
 CREATE POLICY "Availability rules viewable by everyone" ON availability_rules FOR SELECT USING (true);

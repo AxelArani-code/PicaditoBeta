@@ -1,5 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Picadito.Application.Features.Pitches.Commands.CreatePitch;
 using Picadito.Application.Features.Pitches.Queries.GetAllPitches;
+using Picadito.Application.DTOs;
+using Picadito.Application.Common.Models;
 using ErrorOr;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
@@ -13,27 +17,61 @@ namespace Picadito.Api.Controllers;
 public class PitchesController : ControllerBase
 {
     private readonly GetAllPitchesHandler _getAllPitchesHandler;
+    private readonly CreatePitchHandler _createPitchHandler;
 
-    public PitchesController(GetAllPitchesHandler getAllPitchesHandler)
+    public PitchesController(
+        GetAllPitchesHandler getAllPitchesHandler,
+        CreatePitchHandler createPitchHandler)
     {
         _getAllPitchesHandler = getAllPitchesHandler;
+        _createPitchHandler = createPitchHandler;
     }
 
     /// <summary>
-    /// Obtiene todas las canchas activas con filtros adicionales
+    /// Obtiene todas las canchas con filtros opcionales y paginación.
+    /// Los usuarios ven canchas activas, los dueños ven todas las de sus locales.
     /// </summary>
+    /// <param name="query">Filtros opcionales: VenueId, Type, Surface, PageNumber, PageSize.</param>
     /// <param name="cancellationToken">Token de cancelación.</param>
-    /// <returns>Lista de canchas o errores.</returns>
+    /// <returns>Respuesta paginada con las canchas.</returns>
     [HttpGet]
+    [ProducesResponseType(typeof(PagedResponse<PitchDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetAllPitches(
         [FromQuery] GetAllPitchesQuery query,
         CancellationToken cancellationToken)
     {
-
         var result = await _getAllPitchesHandler.Handle(query, cancellationToken);
 
         return result.Match(
             pitches => Ok(pitches),
+            errors => Problem(errors)
+        );
+    }
+
+    /// <summary>
+    /// Crea una nueva cancha en un complejo deportivo.
+    /// Requiere autenticación. Solo admins y venue_owners pueden crear canchas.
+    /// Los admins pueden asignar cualquier VenueId; los owners solo pueden crear en sus propios complejos.
+    /// </summary>
+    /// <param name="request">Datos de la cancha a crear.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>El ID de la cancha creada.</returns>
+    [HttpPost]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreatePitch(
+        [FromBody] CreatePitchCommand request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _createPitchHandler.Handle(request, cancellationToken);
+
+        return result.Match(
+            pitchId => Ok(pitchId),
             errors => Problem(errors)
         );
     }
