@@ -1,10 +1,13 @@
 using System;
+using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Picadito.Application.Common.Interfaces;
 using Picadito.Domain.Enums;
 using Picadito.Infrastructure.Persistence.Repositories;
 using Picadito.Infrastructure.Persistence;
+using Picadito.Infrastructure.Services;
 using Picadito.Application.Features.Bookings.Commands.CreateBooking;
 using Picadito.Application.Features.Pitches.Commands.CreatePitch;
 using Picadito.Application.Features.Pitches.Queries.GetAllPitches;
@@ -45,7 +48,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // 2. SERVICIOS DE APLICACIÓN e INFRAESTRUCTURA
 // ==========================================
 builder.Services.AddControllers();
-builder.Services.AddHttpContextAccessor(); // Necesario para acceder al HttpContext en los Handlers (para JWT)
+builder.Services.AddHttpContextAccessor(); // Necesario para CurrentUserService
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddProblemDetails(); // Middleware para formatear errores automáticamente como ProblemDetails
 builder.Services.AddOpenApi();
 
@@ -99,6 +103,31 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuer = false, // Supabase no siempre valida el Issuer por defecto
         ValidateAudience = true,
         ValidAudience = "authenticated" // Este es el valor por defecto en Supabase
+    };
+
+    /// El evento OnTokenValidated permite interceptar el JSON crudo de Supabase 
+    /// una sola vez por petición, parsear el rol y guardarlo como un claim estándar
+    ///  de .NET
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = context =>
+        {
+            var appMetadata = context.Principal?.FindFirst("app_metadata")?.Value;
+            if (!string.IsNullOrEmpty(appMetadata))
+            {
+                using var jsonDoc = JsonDocument.Parse(appMetadata);
+                if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
+                {
+                    var role = roleElement.GetString();
+                    if (!string.IsNullOrEmpty(role))
+                    {
+                        var identity = context.Principal?.Identity as ClaimsIdentity;
+                        identity?.AddClaim(new Claim(ClaimTypes.Role, role.ToLowerInvariant()));
+                    }
+                }
+            }
+            return Task.CompletedTask;
+        }
     };
 });
  

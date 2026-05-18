@@ -1,12 +1,10 @@
 using System;
 using System.Diagnostics;
-using System.Text.Json;
 using Picadito.Domain.Entities;
 using Picadito.Domain.Enums;
 using Picadito.Domain.Errors;
 using Picadito.Application.Common.Interfaces;
 using FluentValidation;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using ErrorOr;
 
@@ -16,14 +14,14 @@ public class CreatePitchHandler(
     IPitchRepository pitchRepository,
     IVenueRepository venueRepository,
     IValidator<CreatePitchCommand> validator,
-    IHttpContextAccessor httpContextAccessor,
+    ICurrentUserService currentUserService,
     ILogger<CreatePitchHandler> logger)
 {
     private readonly ILogger<CreatePitchHandler> _logger = logger;
 
     public async Task<ErrorOr<Guid>> Handle(CreatePitchCommand request, CancellationToken cancellationToken)
     {
-        var correlationId = Activity.Current?.Id ?? httpContextAccessor.HttpContext?.TraceIdentifier;
+        var correlationId = Activity.Current?.Id;
 
         using (_logger.BeginScope("CorrelationId: {CorrelationId}", correlationId))
         {
@@ -39,45 +37,22 @@ public class CreatePitchHandler(
                     Error.Validation(error.PropertyName, error.ErrorMessage));
             }
 
-            // Extraer usuario del JWT
-            var userIdClaim = httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim))
+            if (currentUserService.UserId is null)
             {
-                _logger.LogWarning("User not authenticated");
+                _logger.LogWarning("Intento de acceso de usuario no autenticado.");
                 return Error.Unauthorized(description: "Usuario no autenticado");
             }
 
-            var userId = Guid.Parse(userIdClaim);
+            var userId = currentUserService.UserId.Value;
 
-            // Extraer rol desde app_metadata (formato JSON)
-            var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
-            string? roleName = null;
-            bool isAdmin = false;
-
-            if (!string.IsNullOrEmpty(rawRoleClaim))
+            if (!Enum.TryParse<UserRole>(currentUserService.Role, true, out var userRole))
             {
-                try
-                {
-                    using var jsonDoc = JsonDocument.Parse(rawRoleClaim);
-                    if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
-                    {
-                        roleName = roleElement.GetString();
-                    }
-                }
-                catch
-                {
-                    _logger.LogWarning("Invalid role format in token");
-                    return Error.Unauthorized(description: "El formato del rol en el token es inválido.");
-                }
+                _logger.LogWarning("Rol no reconocido: {Role}", currentUserService.Role);
+                return Error.Forbidden(code: "Role.Invalid", description: "El rol no es reconocido.");
             }
 
-            if (!Enum.TryParse<UserRole>(roleName, true, out var userRole))
-            {
-                _logger.LogWarning("Invalid role. Role: {Role}", roleName);
-                return Error.Forbidden(code: "Role.Invalid", description: $"El rol '{roleName}' no es reconocido.");
-            }
-
-            isAdmin = userRole == UserRole.admin;
+            var isAdmin = currentUserService.IsAdmin;
+            var isOwner = userRole == UserRole.venue_owner;
 
             // Solo venue_owners y admins pueden crear canchas
             if (userRole == UserRole.player)
@@ -103,8 +78,8 @@ public class CreatePitchHandler(
             // RLS: Admin puede asignar cualquier VenueId; Owner debe verificar que el Venue le pertenezca
             if (!isAdmin)
             {
-                var isOwner = await venueRepository.IsOwnerAsync(request.VenueId, userId, cancellationToken);
-                if (!isOwner)
+                var isVenueOwner = await venueRepository.IsOwnerAsync(request.VenueId, userId, cancellationToken);
+                if (!isVenueOwner)
                 {
                     _logger.LogWarning(
                         "User is not owner of the venue. UserId: {UserId}, VenueId: {VenueId}",

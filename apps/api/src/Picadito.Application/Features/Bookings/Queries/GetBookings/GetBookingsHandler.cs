@@ -5,9 +5,7 @@ using Picadito.Application.Common.Interfaces;
 using Picadito.Application.Common.Models;
 using Picadito.Application.DTOs;
 using FluentValidation;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 using Picadito.Domain.Enums;
 using ErrorOr;
 
@@ -19,7 +17,7 @@ namespace Picadito.Application.Features.Bookings.Queries.GetBookings;
 public class GetBookingsHandler(
     IBookingRepository bookingRepository,
     IValidator<GetBookingsQuery> validator,
-    IHttpContextAccessor httpContextAccessor,
+    ICurrentUserService currentUserService,
     ILogger<GetBookingsHandler> logger)
 {
     private readonly ILogger<GetBookingsHandler> _logger = logger;
@@ -28,54 +26,21 @@ public class GetBookingsHandler(
     {
         var sw = Stopwatch.StartNew();
 
-        var user = httpContextAccessor.HttpContext?.User;
-        
-        /// Verificar si usuario es autenticado
-        if (user?.Identity?.IsAuthenticated != true)
+        if (currentUserService.UserId is null)
         {
             return Error.Unauthorized(description: "Usuario no autenticado.");
         }
 
-        /// Obtener el usuario y verificar si existe
-        var userIdClaim = httpContextAccessor.HttpContext?.User
-            .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        
-        if (string.IsNullOrEmpty(userIdClaim))
+        var userId = currentUserService.UserId.Value;
+
+        if (!Enum.TryParse<UserRole>(currentUserService.Role, true, out var userRole))
         {
-            return Error.Unauthorized(description: "No se pudo identificar al usuario.");
-        }
-
-        var userId = Guid.Parse(userIdClaim);
-
-        // Extraer rol desde app_metadata (formato JSON)
-        var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
-        string? roleName = null;
-
-        if (!string.IsNullOrEmpty(rawRoleClaim))
-        {
-            try
-            {
-                using var jsonDoc = JsonDocument.Parse(rawRoleClaim);
-                if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
-                {
-                    roleName = roleElement.GetString();
-                }
-            }
-            catch
-            {
-                _logger.LogWarning("Invalid role format in token");
-                return Error.Unauthorized(description: "El formato del rol en el token es inválido.");
-            }
-        }
-
-        if (!Enum.TryParse<UserRole>(roleName, true, out var userRole))
-        {
-            _logger.LogWarning("Invalid role. Role: {Role}", roleName);
-            return Error.Forbidden(code: "Role.Invalid", description: $"El rol '{roleName}' no es reconocido.");
+            _logger.LogWarning("Rol no reconocido: {Role}", currentUserService.Role);
+            return Error.Forbidden(code: "Role.Invalid", description: "El rol no es reconocido.");
         }
 
         _logger.LogInformation("GetBookings request started: UserId={UserId}, Role={Role}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, PageNumber={PageNumber}, PageSize={PageSize}",
-            userIdClaim, userRole, request.Status, request.PaymentStatus, request.PitchId, request.PageNumber, request.PageSize);
+            userId, userRole, request.Status, request.PaymentStatus, request.PitchId, request.PageNumber, request.PageSize);
 
         try
         {
@@ -83,7 +48,7 @@ public class GetBookingsHandler(
             if (!validationResult.IsValid)
             {
                 _logger.LogWarning("GetBookings validation failed: UserId={UserId}, Errors={Errors}",
-                    userIdClaim, string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                    userId, string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
                 return validationResult.Errors.ConvertAll(error => 
                     Error.Validation(error.PropertyName, error.ErrorMessage));
             }
@@ -116,13 +81,13 @@ public class GetBookingsHandler(
             {
                 _logger.LogWarning(
                     "[SLOW QUERY] GetBookings: ElapsedMs={ElapsedMs}, UserId={UserId}, Role={Role}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, PageNumber={PageNumber}, PageSize={PageSize}, ItemsCount={ItemsCount}, TotalCount={TotalCount}",
-                    elapsedMs, userIdClaim, userRole, request.Status, request.PaymentStatus, request.PitchId, request.PageNumber, request.PageSize, result.Value.Items.Count, result.Value.TotalCount);
+                    elapsedMs, userId, userRole, request.Status, request.PaymentStatus, request.PitchId, request.PageNumber, request.PageSize, result.Value.Items.Count, result.Value.TotalCount);
             }
             else
             {
                 _logger.LogInformation(
                     "GetBookings completed: ElapsedMs={ElapsedMs}, UserId={UserId}, Role={Role}, PageNumber={PageNumber}, PageSize={PageSize}, ItemsCount={ItemsCount}, TotalCount={TotalCount}",
-                    elapsedMs, userIdClaim, userRole, request.PageNumber, request.PageSize, result.Value.Items.Count, result.Value.TotalCount);
+                    elapsedMs, userId, userRole, request.PageNumber, request.PageSize, result.Value.Items.Count, result.Value.TotalCount);
             }
 
             return result.Value;
@@ -131,7 +96,7 @@ public class GetBookingsHandler(
         {
             sw.Stop();
             _logger.LogError(ex, "GetBookings error: UserId={UserId}, ElapsedMs={ElapsedMs}",
-                userIdClaim, sw.ElapsedMilliseconds);
+                userId, sw.ElapsedMilliseconds);
             throw;
         }
     }

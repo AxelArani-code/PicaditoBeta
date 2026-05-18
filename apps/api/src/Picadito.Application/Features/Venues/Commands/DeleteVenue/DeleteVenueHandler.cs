@@ -1,12 +1,11 @@
 using System;
 using System.Diagnostics;
 using Picadito.Application.Common.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Picadito.Domain.Errors;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 using Picadito.Domain.Enums;
+
 namespace Picadito.Application.Features.Venues.Commands.DeleteVenue;
 
 /// <summary>
@@ -14,55 +13,35 @@ namespace Picadito.Application.Features.Venues.Commands.DeleteVenue;
 /// </summary>
 public class DeleteVenueHandler(
     IVenueRepository venueRepository,
-    IHttpContextAccessor httpContextAccessor,
+    ICurrentUserService currentUserService,
     ILogger<DeleteVenueHandler> logger)
 {
     private readonly ILogger<DeleteVenueHandler> _logger = logger;
 
     public async Task<ErrorOr<Success>> Handle(DeleteVenueCommand request, CancellationToken cancellationToken)
     {
-        var correlationId = Activity.Current?.Id ?? httpContextAccessor.HttpContext?.TraceIdentifier;
+        var correlationId = Activity.Current?.Id;
 
         using (_logger.BeginScope("CorrelationId: {CorrelationId}, VenueId: {VenueId}", correlationId, request.Id))
         {
             _logger.LogInformation("Starting venue soft delete for VenueId: {VenueId}", request.Id);
 
-            // Extraer usuario del JWT
-            var userIdClaim = httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim))
+            if (currentUserService.UserId is null)
             {
-                _logger.LogWarning("User not authenticated");
+                _logger.LogWarning("Intento de acceso de usuario no autenticado.");
                 return Error.Unauthorized(description: "Usuario no autenticado");
             }
 
-            var userId = Guid.Parse(userIdClaim);
+            var userId = currentUserService.UserId.Value;
 
-            // Extraer rol desde app_metadata (formato JSON)
-            var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
-            string? roleName = null;
-
-            if (!string.IsNullOrEmpty(rawRoleClaim))
+            if (!Enum.TryParse<UserRole>(currentUserService.Role, true, out var userRole))
             {
-                try
-                {
-                    using var jsonDoc = JsonDocument.Parse(rawRoleClaim);
-                    if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
-                    {
-                        roleName = roleElement.GetString();
-                    }
-                }
-                catch
-                {
-                    _logger.LogWarning("Invalid role format in token");
-                    return Error.Unauthorized(description: "El formato del rol en el token es inválido.");
-                }
+                _logger.LogWarning("Rol no reconocido: {Role}", currentUserService.Role);
+                return Error.Forbidden(code: "Role.Invalid", description: "El rol no es reconocido.");
             }
 
-            if (!Enum.TryParse<UserRole>(roleName, true, out var userRole))
-            {
-                _logger.LogWarning("Invalid role. Role: {Role}", roleName);
-                return Error.Forbidden(code: "Role.Invalid", description: $"El rol '{roleName}' no es reconocido.");
-            }
+            var isAdmin = currentUserService.IsAdmin;
+            var isOwner = userRole == UserRole.venue_owner;
 
             // Verificar que el venue existe
             var venue = await venueRepository.GetEntityByIdAsync(request.Id, cancellationToken);
