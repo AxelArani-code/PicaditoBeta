@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using Picadito.Domain.Entities;
+using Picadito.Domain.Errors;
 using Picadito.Application.Common.Interfaces;
 using Picadito.Application.DTOs;
 using Picadito.Application.Common.Models;
@@ -68,29 +69,22 @@ public class PitchRepository : IPitchRepository
         var sw = Stopwatch.StartNew();
         try
         {
-            // Construir la consulta base incluyendo la relación con Venue
             var query = _context.Pitches
                 .Include(p => p.Venue)
                 .AsQueryable();
 
-            // --- APLICACIÓN DE SEGURIDAD POR ROLES (is_active) ---
             if (userRole == UserRole.admin)
             {
-                // El admin ve todas las canchas (activas e inactivas) de cualquier complejo
-                // Sin filtro adicional de propiedad ni de estado
             }
             else if (userRole == UserRole.venue_owner)
             {
-                // El dueño ve todas las canchas (activas e inactivas) solo de sus complejos
                 query = query.Where(p => p.Venue.OwnerId == currentUserId);
             }
             else
             {
-                // El player solo ve canchas activas de cualquier complejo
                 query = query.Where(p => p.IsActive);
             }
 
-            // Aplicar filtros opcionales
             if (venueId.HasValue)
             {
                 query = query.Where(p => p.VenueId == venueId.Value);
@@ -106,18 +100,12 @@ public class PitchRepository : IPitchRepository
                 query = query.Where(p => p.Surface.ToString() == surface);
             }
 
-            // Obtener el conteo total de registros que coinciden con los filtros y la seguridad por rol
             var totalCount = await query.CountAsync(cancellationToken);
 
-            // Calcular el total de páginas basado en el tamaño de página
             var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
-            // Calcular el salto (skip) basado en la página actual
-            // Fórmula: (pageNumber - 1) * pageSize
             var skip = (pageNumber - 1) * pageSize;
 
-            // Aplicar ordenamiento determinista por fecha de creación y luego por ID
-            // y aplicar paginación con Skip/Take
             var pitches = await query
                 .OrderByDescending(p => p.CreatedAt)
                 .ThenBy(p => p.Id)
@@ -152,7 +140,6 @@ public class PitchRepository : IPitchRepository
                     elapsedMs, pageNumber, pageSize, pitches.Count, totalCount);
             }
 
-            // Construir y retornar la respuesta paginada
             return new PagedResponse<PitchDto>(
                 Items: pitches,
                 PageNumber: pageNumber,
@@ -169,5 +156,95 @@ public class PitchRepository : IPitchRepository
                 sw.ElapsedMilliseconds, pageNumber, pageSize, venueId, type, surface);
             throw;
         }
+    }
+
+    public async Task<Pitch?> GetPitchByIdAsync(Guid pitchId, CancellationToken cancellationToken)
+    {
+        return await _context.Pitches
+            .FirstOrDefaultAsync(p => p.Id == pitchId, cancellationToken);
+    }
+
+    public async Task<ErrorOr<PitchDto>> GetPitchByIdWithVenueAsync(Guid pitchId, Guid currentUserId, UserRole userRole, CancellationToken cancellationToken)
+    {
+        var query = _context.Pitches
+            .Include(p => p.Venue)
+            .Where(p => p.Id == pitchId);
+
+        if (userRole == UserRole.venue_owner)
+        {
+            query = query.Where(p => p.Venue.OwnerId == currentUserId);
+        }
+        else if (userRole == UserRole.player)
+        {
+            query = query.Where(p => p.IsActive);
+        }
+
+        var pitch = await query
+            .Select(p => new PitchDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                VenueId = p.VenueId,
+                VenueName = p.Venue.Name,
+                Type = p.Type.ToString(),
+                Surface = p.Surface.ToString(),
+                PricePerHour = p.PricePerHour,
+                IsActive = p.IsActive
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (pitch is null)
+        {
+            return userRole == UserRole.venue_owner 
+                ? DomainErrors.Pitch.Forbidden 
+                : DomainErrors.Pitch.NotFound;
+        }
+
+        return pitch;
+    }
+
+    public async Task<ErrorOr<Success>> UpdateAsync(Pitch pitch, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken)
+    {
+        _context.Pitches.Update(pitch);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Pitch updated successfully. PitchId: {PitchId}, VenueId: {VenueId}, IsAdmin: {IsAdmin}",
+            pitch.Id, pitch.VenueId, isAdmin);
+
+        return Result.Success;
+    }
+
+    public async Task<ErrorOr<Success>> DeleteAsync(Guid pitchId, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken)
+    {
+        var pitch = await _context.Pitches
+            .FirstOrDefaultAsync(p => p.Id == pitchId, cancellationToken);
+
+        if (pitch is null)
+        {
+            return DomainErrors.Pitch.NotFound;
+        }
+
+        var hasActiveBookings = await _context.Bookings
+            .AnyAsync(b => b.PitchId == pitchId && (b.Status == BookingStatus.pending || b.Status == BookingStatus.confirmed), cancellationToken);
+
+        if (hasActiveBookings)
+        {
+            _logger.LogWarning(
+                "Cannot delete pitch with active bookings. PitchId: {PitchId}, CurrentUserId: {CurrentUserId}",
+                pitchId, currentUserId);
+            return DomainErrors.Pitch.CannotDelete;
+        }
+
+        pitch.GetType().GetProperty("DeletedAt")!.SetValue(pitch, DateTime.UtcNow);
+        pitch.GetType().GetProperty("IsActive")!.SetValue(pitch, false);
+        
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Pitch deleted successfully. PitchId: {PitchId}, CurrentUserId: {CurrentUserId}, IsAdmin: {IsAdmin}",
+            pitchId, currentUserId, isAdmin);
+
+        return Result.Success;
     }
 }

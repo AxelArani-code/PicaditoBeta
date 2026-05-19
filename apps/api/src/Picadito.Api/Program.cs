@@ -26,7 +26,9 @@ using Picadito.Application.Features.Venues.Commands.UpdateVenue;
 using Picadito.Application.Features.Venues.Commands.DeleteVenue;
 using Picadito.Application.Features.Venues.Queries.GetAllVenues;
 using Picadito.Application.Features.Venues.Queries.GetVenueById;
-using Microsoft.Extensions.Logging;
+using Picadito.Application.Features.Pitches.Queries.GetPitchById;
+using Picadito.Application.Features.Pitches.Commands.UpdatePitch;
+using Picadito.Application.Features.Pitches.Commands.DeletePitch;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,8 +65,13 @@ builder.Services.AddScoped<ConfirmBookingHandler>();
 builder.Services.AddScoped<RejectBookingHandler>();
 builder.Services.AddScoped<CancelBookingHandler>();
 builder.Services.AddScoped<GetBookingsHandler>();
+
+// Pitch Handlers
+builder.Services.AddScoped<GetPitchByIdHandler>();
 builder.Services.AddScoped<CreatePitchHandler>();
 builder.Services.AddScoped<GetAllPitchesHandler>();
+builder.Services.AddScoped<UpdatePitchHandler>();
+builder.Services.AddScoped<DeletePitchHandler>();
 
 // Venue Handlers
 builder.Services.AddScoped<CreateVenueHandler>();

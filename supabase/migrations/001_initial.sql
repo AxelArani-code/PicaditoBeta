@@ -27,6 +27,18 @@ CREATE TABLE profiles (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+    username TEXT UNIQUE,
+    full_name TEXT,
+    avatar_url TEXT,
+    role TEXT DEFAULT 'player',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    -- 2. Added CHECK constraint to enforce valid roles
+    CONSTRAINT check_profiles_role CHECK (role IN ('player', 'venue_owner', 'admin'))
+);
+
 -- VENUES
 CREATE TABLE venues (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -318,18 +330,19 @@ RETURNS TRIGGER AS $$
 DECLARE
   v_venue_id UUID;
 BEGIN
+  -- CASO: CONFIRMACIÓN
   IF NEW.status = 'confirmed' AND OLD.status != 'confirmed' THEN
     -- 1. Mark slot as booked
     UPDATE time_slots SET status = 'booked' WHERE id = NEW.time_slot_id;
-    
-    -- 2. Create match
+
+    -- 2. Crea el partido
     -- Need venue_id for the match, get it from pitches
     SELECT venue_id INTO v_venue_id FROM pitches WHERE id = NEW.pitch_id;
     
     INSERT INTO matches (booking_id, venue_id, date, status) 
     VALUES (NEW.id, v_venue_id, NEW.date, 'scheduled')
-    ON CONFLICT (booking_id) DO NOTHING;
-    
+    ON CONFLICT (booking_id) DO UPDATE SET status = 'scheduled';
+
     -- 3. Notify player
     INSERT INTO notifications (user_id, title, message, type, link)
     VALUES (
@@ -339,11 +352,15 @@ BEGIN
       'booking_confirmed',
       '/dashboard/reservas'
     );
+
+  -- CASO: RECHAZO
   ELSIF NEW.status = 'rejected' AND OLD.status != 'rejected' THEN
-    -- Mark slot as available
     UPDATE time_slots SET status = 'available' WHERE id = NEW.time_slot_id;
     
-    -- Notify player
+    -- El partido (si existiera) se marca como cancelado
+    UPDATE matches SET status = 'cancelled' WHERE booking_id = NEW.id;
+    
+    -- 3. Notificar al jugador
     INSERT INTO notifications (user_id, title, message, type, link)
     VALUES (
       NEW.user_id,
@@ -352,8 +369,23 @@ BEGIN
       'booking_rejected',
       '/dashboard/reservas'
     );
+
+  -- CASO: CANCELACIÓN (Reserva confirmada que se cae)
   ELSIF NEW.status = 'cancelled' AND OLD.status != 'cancelled' THEN
     UPDATE time_slots SET status = 'available' WHERE id = NEW.time_slot_id;
+    
+    -- El partido pasa a cancelado para mantener estadísticas
+    UPDATE matches SET status = 'cancelled' WHERE booking_id = NEW.id;
+
+    -- Notificación de cancelación (Lógica añadida para cerrar el ciclo)
+    INSERT INTO notifications (user_id, title, message, type, link)
+    VALUES (
+      NEW.user_id,
+      'Reserva Cancelada',
+      'Tu reserva confirmada ha sido cancelada por el complejo.',
+      'booking_cancelled',
+      '/dashboard/reservas'
+    );
   END IF;
   
   RETURN NEW;

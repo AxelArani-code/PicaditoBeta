@@ -9,26 +9,10 @@ namespace Picadito.Application.Common.Interfaces;
 
 public interface IPitchRepository
 {
-    /// <summary>
-    /// Crea una nueva cancha.
-    /// </summary>
     Task<ErrorOr<Guid>> AddAsync(Pitch pitch, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken);
 
     Task<bool> IsOwnerAsync(Guid pitchId, Guid userId, CancellationToken cancellationToken);
     
-    /// <summary>
-    /// Obtiene todas las canchas con filtros opcionales y paginación.
-    /// Aplica seguridad por roles: los usuarios ven canchas activas, los dueños ven todas las de sus locales.
-    /// </summary>
-    /// <param name="venueId">Filtro por ID del complejo.</param>
-    /// <param name="type">Filtro por tipo de cancha.</param>
-    /// <param name="surface">Filtro por tipo de superficie.</param>
-    /// <param name="currentUserId">ID del usuario autenticado para aplicar filtros de seguridad.</param>
-    /// <param name="userRole">Rol del usuario para aplicar lógica de seguridad.</param>
-    /// <param name="pageNumber">Número de página a obtener (comienza en 1).</param>
-    /// <param name="pageSize">Cantidad de elementos por página.</param>
-    /// <param name="cancellationToken">Token de cancelación.</param>
-    /// <returns>Respuesta paginada con las canchas y metadata de paginación.</returns>
     Task<ErrorOr<PagedResponse<PitchDto>>> GetAllAsync(
         Guid? venueId,
         string? type,
@@ -38,4 +22,12 @@ public interface IPitchRepository
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken);
+
+    Task<Pitch?> GetPitchByIdAsync(Guid pitchId, CancellationToken cancellationToken);
+
+    Task<ErrorOr<PitchDto>> GetPitchByIdWithVenueAsync(Guid pitchId, Guid currentUserId, UserRole userRole, CancellationToken cancellationToken);
+
+    Task<ErrorOr<Success>> UpdateAsync(Pitch pitch, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken);
+
+    Task<ErrorOr<Success>> DeleteAsync(Guid pitchId, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken);
 }
