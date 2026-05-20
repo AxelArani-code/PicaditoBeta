@@ -8,7 +8,6 @@
     <Folder Include="Common\" />
     <Folder Include="Common\Interfaces\" />
     <Folder Include="DTOs\" />
-    <Folder Include="Features\" />
     <Folder Include="Features\Bookings\" />
     <Folder Include="Features\Bookings\Commands\" />
     <Folder Include="Features\Bookings\Commands\CreateBooking\" />

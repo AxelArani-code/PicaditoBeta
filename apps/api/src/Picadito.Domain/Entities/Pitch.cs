@@ -84,4 +84,21 @@ public class Pitch
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void Update(string name, PitchType type, SurfaceType surface, decimal pricePerHour, bool isActive)
+    {
+        Name = name;
+        Type = type;
+        Surface = surface;
+        PricePerHour = pricePerHour;
+        IsActive = isActive;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Delete()
+    {
+        DeletedAt = DateTime.UtcNow;
+        IsActive = false;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

@@ -1,55 +1,52 @@
 using System;
+using System.Diagnostics;
+using System.Linq;
 using Picadito.Application.Common.Interfaces;
+using Picadito.Application.Common.Models;
 using Picadito.Application.DTOs;
 using FluentValidation;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using ErrorOr;
-using System.Text.Json;
-using System.Diagnostics;
+using Picadito.Domain.Enums;
 
 namespace Picadito.Application.Features.Pitches.Queries.GetAllPitches;
 
 /// <summary>
-/// Handler para procesar GetAllPitchesQuery.
-/// Se encarga de validar la solicitud, extraer el contexto de seguridad del JWT
-/// y devolver la lista de canchas o errores en caso de fallo.
+/// Handler para procesar GetAllPitchesQuery con paginación.
 /// </summary>
 public class GetAllPitchesHandler(
     IPitchRepository pitchRepository,
     IValidator<GetAllPitchesQuery> validator,
-    IHttpContextAccessor httpContextAccessor,
+    ICurrentUserService currentUserService,
     ILogger<GetAllPitchesHandler> logger)
 {
     private readonly ILogger<GetAllPitchesHandler> _logger = logger;
 
     /// <summary>
-    /// Procesa la solicitud de listar todas las canchas.
+    /// Procesa la solicitud de listar todas las canchas con paginación.
     /// </summary>
-    /// <param name="request">Query con los parámetros de filtrado.</param>
+    /// <param name="request">Query con los parámetros de filtrado y paginación.</param>
     /// <param name="cancellationToken">Token de cancelación.</param>
-    /// <returns>Lista de DTOs de canchas o errores.</returns>
-    public async Task<ErrorOr<List<PitchDto>>> Handle(GetAllPitchesQuery request, CancellationToken cancellationToken)
+    /// <returns>Respuesta paginada de DTOs de canchas o errores.</returns>
+    public async Task<ErrorOr<PagedResponse<PitchDto>>> Handle(GetAllPitchesQuery request, CancellationToken cancellationToken)
     {
         var sw = Stopwatch.StartNew();
 
-        var user = httpContextAccessor.HttpContext?.User;
-        
-        if (user?.Identity?.IsAuthenticated != true)
+        if (currentUserService.UserId is null)
         {
             return Error.Unauthorized(description: "Usuario no autenticado.");
         }
 
-        var userIdClaim = httpContextAccessor.HttpContext?.User
-            .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        
-        if (string.IsNullOrEmpty(userIdClaim))
+        var userId = currentUserService.UserId.Value;
+
+        if (!Enum.TryParse<UserRole>(currentUserService.Role, true, out var userRole))
         {
-            return Error.Unauthorized(description: "No se pudo identificar al usuario.");
+            _logger.LogWarning("Rol no reconocido: {Role}", currentUserService.Role);
+            return Error.Forbidden(code: "Role.Invalid", description: "El rol no es reconocido.");
         }
 
-        _logger.LogInformation("GetAllPitches request started: UserId={UserId}, VenueId={VenueId}, Type={Type}, Surface={Surface}",
-            userIdClaim, request.VenueId, request.Type, request.Surface);
+        _logger.LogInformation("GetAllPitches request started: UserId={UserId}, Role={Role}, VenueId={VenueId}, Type={Type}, Surface={Surface}, PageNumber={PageNumber}, PageSize={PageSize}",
+            userId, userRole, request.VenueId, request.Type, request.Surface, request.PageNumber, request.PageSize);
 
         try
         {
@@ -57,35 +54,32 @@ public class GetAllPitchesHandler(
             if (!validationResult.IsValid)
             {
                 _logger.LogWarning("GetAllPitches validation failed: UserId={UserId}, Errors={Errors}",
-                    userIdClaim, string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                    userId, string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
                 return validationResult.Errors.ConvertAll(error => 
                     Error.Validation(error.PropertyName, error.ErrorMessage));
             }
 
-            var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
-            string? roleName = null;
+            // Calcular el valor de skip basado en la fórmula: (PageNumber - 1) * PageSize
+            var skip = (request.PageNumber - 1) * request.PageSize;
+            _logger.LogDebug("Calculated skip value: {Skip} for PageNumber: {PageNumber}, PageSize: {PageSize}",
+                skip, request.PageNumber, request.PageSize);
 
-            if (!string.IsNullOrEmpty(rawRoleClaim))
-            {
-                try
-                {
-                    using var jsonDoc = JsonDocument.Parse(rawRoleClaim);
-                    if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
-                    {
-                        roleName = roleElement.GetString();
-                    }
-                }
-                catch
-                {
-                }
-            }
-
-            var pitches = await pitchRepository.GetAllAsync(
-                request.VenueId, 
-                request.Type, 
-                request.Surface, 
+            // Obtener las canchas desde el repositorio con filtros, paginación y seguridad por rol
+            var result = await pitchRepository.GetAllAsync(
+                request.VenueId,
+                request.Type,
+                request.Surface,
+                userId,
+                userRole,
+                request.PageNumber,
+                request.PageSize,
                 cancellationToken
                 );
+
+            if (result.IsError)
+            {
+                return result.Errors;
+            }
 
             sw.Stop();
             var elapsedMs = sw.ElapsedMilliseconds;
@@ -93,23 +87,23 @@ public class GetAllPitchesHandler(
             if (elapsedMs > 500)
             {
                 _logger.LogWarning(
-                    "[SLOW QUERY] GetAllPitches: ElapsedMs={ElapsedMs}, UserId={UserId}, VenueId={VenueId}, Type={Type}, Surface={Surface}, Count={Count}",
-                    elapsedMs, userIdClaim, request.VenueId, request.Type, request.Surface, pitches.Count);
+                    "[SLOW QUERY] GetAllPitches: ElapsedMs={ElapsedMs}, UserId={UserId}, Role={Role}, VenueId={VenueId}, Type={Type}, Surface={Surface}, PageNumber={PageNumber}, PageSize={PageSize}, ItemsCount={ItemsCount}, TotalCount={TotalCount}",
+                    elapsedMs, userId, userRole, request.VenueId, request.Type, request.Surface, request.PageNumber, request.PageSize, result.Value.Items.Count, result.Value.TotalCount);
             }
             else
             {
                 _logger.LogInformation(
-                    "GetAllPitches completed: ElapsedMs={ElapsedMs}, UserId={UserId}, Count={Count}",
-                    elapsedMs, userIdClaim, pitches.Count);
+                    "GetAllPitches completed: ElapsedMs={ElapsedMs}, UserId={UserId}, Role={Role}, PageNumber={PageNumber}, PageSize={PageSize}, ItemsCount={ItemsCount}, TotalCount={TotalCount}",
+                    elapsedMs, userId, userRole, request.PageNumber, request.PageSize, result.Value.Items.Count, result.Value.TotalCount);
             }
 
-            return pitches;
+            return result.Value;
         }
         catch (Exception ex)
         {
             sw.Stop();
             _logger.LogError(ex, "GetAllPitches error: UserId={UserId}, ElapsedMs={ElapsedMs}",
-                userIdClaim, sw.ElapsedMilliseconds);
+                userId, sw.ElapsedMilliseconds);
             throw;
         }
     }
