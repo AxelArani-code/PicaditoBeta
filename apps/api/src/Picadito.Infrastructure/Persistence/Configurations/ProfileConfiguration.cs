@@ -21,7 +21,7 @@ public class ProfileConfiguration : IEntityTypeConfiguration<Profile>
         builder.Property(e => e.Id).HasColumnName("id");
         builder.Property(e => e.Username).HasColumnName("username");
         builder.Property(e => e.FullName).HasColumnName("full_name");
-        builder.Property(e => e.AvatarUrl).HasColumnName("avatar_url");
+        builder.Property(e => e.AvatarUrl).HasColumnName("avatar_url").IsRequired(false);
         builder.Property(e => e.Role).HasColumnName("role");
 
         // Columnas de auditoría

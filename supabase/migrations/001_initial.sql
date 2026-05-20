@@ -22,16 +22,6 @@ CREATE TABLE profiles (
     username TEXT UNIQUE,
     full_name TEXT,
     avatar_url TEXT,
-    role user_role DEFAULT 'player',
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
-    username TEXT UNIQUE,
-    full_name TEXT,
-    avatar_url TEXT,
     role TEXT DEFAULT 'player',
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),

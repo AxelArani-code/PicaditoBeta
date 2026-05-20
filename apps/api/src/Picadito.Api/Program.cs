@@ -29,6 +29,11 @@ using Picadito.Application.Features.Venues.Queries.GetVenueById;
 using Picadito.Application.Features.Pitches.Queries.GetPitchById;
 using Picadito.Application.Features.Pitches.Commands.UpdatePitch;
 using Picadito.Application.Features.Pitches.Commands.DeletePitch;
+using Picadito.Application.Features.Profiles.Queries.GetMyProfile;
+using Picadito.Application.Features.Profiles.Queries.GetProfileById;
+using Picadito.Application.Features.Profiles.Queries.GetAllProfiles;
+using Picadito.Application.Features.Profiles.Commands.UpdateProfile;
+using Picadito.Application.Features.Profiles.Commands.DeleteProfile;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,6 +65,7 @@ builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
 builder.Services.AddScoped<IPitchRepository, PitchRepository>();
 builder.Services.AddScoped<IVenueRepository, VenueRepository>();
+builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 builder.Services.AddScoped<ConfirmBookingHandler>();
 builder.Services.AddScoped<RejectBookingHandler>();
@@ -80,12 +86,20 @@ builder.Services.AddScoped<DeleteVenueHandler>();
 builder.Services.AddScoped<GetAllVenuesHandler>();
 builder.Services.AddScoped<GetVenueByIdHandler>();
 
+// Profile Handlers
+builder.Services.AddScoped<GetMyProfileHandler>();
+builder.Services.AddScoped<GetProfileByIdHandler>();
+builder.Services.AddScoped<GetAllProfilesHandler>();
+builder.Services.AddScoped<UpdateProfileHandler>();
+builder.Services.AddScoped<DeleteProfileHandler>();
+
 // Validaciones
 builder.Services.AddValidatorsFromAssemblyContaining<CreateBookingCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreatePitchValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateVenueCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<UpdateVenueCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<GetAllVenuesQueryValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateProfileValidator>();
 
 // ==========================================
 // 3. SEGURIDAD (JWT & Auth)
