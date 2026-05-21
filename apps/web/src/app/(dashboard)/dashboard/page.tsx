@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+"use client";
+
+import { useState } from "react";
 import {
     Search,
     ShieldCheck,
@@ -17,12 +18,20 @@ import {
     Landmark,
     Users,
 } from "lucide-react";
+import { ScheduleManagementDrawer } from "@/components/dashboard/ScheduleManagementDrawer";
 
-export default async function DashboardPage() {
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get("picadito_access_token")?.value;
+interface Field {
+    name: string;
+    type: string;
+    status: "DISPONIBLE" | "RESERVADA";
+    next: string;
+    action: string;
+    reserveNow: boolean;
+}
 
-    if (!accessToken) redirect("/login");
+export default function DashboardPage() {
+    const [isScheduleDrawerOpen, setIsScheduleDrawerOpen] = useState(false);
+    const [selectedField, setSelectedField] = useState<Field | null>(null);
 
     return (
         <div className="animate-fade-in min-h-full bg-[radial-gradient(1200px_500px_at_80%_-10%,rgba(75,225,118,0.18),transparent_65%),radial-gradient(1000px_420px_at_10%_0%,rgba(5,102,217,0.12),transparent_60%),#0e150e] p-4 text-[#dce5d9] sm:p-6">
@@ -166,9 +175,9 @@ export default async function DashboardPage() {
 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                             {[
-                                { name: "Cancha 01", type: "Futbol 5 - Sintetico", status: "DISPONIBLE", next: "18:00 - 19:00", action: "Gestionar Horarios", reserveNow: false },
-                                { name: "Cancha 02", type: "Futbol 5 - Sintetico", status: "RESERVADA", next: "AHORA", action: "Ver Reserva", reserveNow: true },
-                                { name: "Cancha 03", type: "Futbol 7 - Sintetico", status: "DISPONIBLE", next: "19:30 - 20:30", action: "Gestionar Horarios", reserveNow: false },
+                                { name: "Cancha 01", type: "Futbol 5 - Sintetico", status: "DISPONIBLE" as const, next: "18:00 - 19:00", action: "Gestionar Horarios", reserveNow: false },
+                                { name: "Cancha 02", type: "Futbol 5 - Sintetico", status: "RESERVADA" as const, next: "AHORA", action: "Ver Reserva", reserveNow: true },
+                                { name: "Cancha 03", type: "Futbol 7 - Sintetico", status: "DISPONIBLE" as const, next: "19:30 - 20:30", action: "Gestionar Horarios", reserveNow: false },
                             ].map((field) => (
                                 <article key={field.name} className={`rounded-2xl border p-4 backdrop-blur-xl ${field.reserveNow ? "border-[#adc6ff]/70" : "border-[#4be176]/70"} bg-white/[0.03]`}>
                                     <div className="mb-3 flex items-start justify-between">
@@ -190,7 +199,12 @@ export default async function DashboardPage() {
                                         <span className="text-[#dce5d9]">{field.next}</span>
                                     </div>
 
-                                    <button className="w-full rounded-lg border border-white/10 bg-[#2f372e]/50 px-3 py-2 text-sm transition hover:border-[#4be176]/60 hover:bg-[#4be176]/10">
+                                    <button 
+                                        onClick={() => {
+                                            setSelectedField(field);
+                                            setIsScheduleDrawerOpen(true);
+                                        }}
+                                        className="w-full rounded-lg border border-white/10 bg-[#2f372e]/50 px-3 py-2 text-sm transition hover:border-[#4be176]/60 hover:bg-[#4be176]/10">
                                         {field.action}
                                     </button>
                                 </article>
@@ -250,6 +264,14 @@ export default async function DashboardPage() {
                     </section>
                 </div>
             </div>
+
+            {/* Schedule Management Drawer */}
+            <ScheduleManagementDrawer
+                isOpen={isScheduleDrawerOpen}
+                onClose={() => setIsScheduleDrawerOpen(false)}
+                pitchName={selectedField?.name || "Cancha"}
+                pitchType={selectedField?.type || "Fútbol"}
+            />
         </div>
     );
 }
