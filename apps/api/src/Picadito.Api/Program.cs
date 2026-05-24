@@ -56,6 +56,19 @@ var dataSource = dataSourceBuilder.Build();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(dataSource));
 
+// ================================
+// 1.B DEFINIR LA POLÍTICA DE CORS
+// ================================  
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()    // Permite peticiones desde cualquier origen
+              .AllowAnyMethod()    // Permite cualquier método (GET, POST, PUT, DELETE, etc.)
+              .AllowAnyHeader();   // Permite cualquier cabecera HTTP
+    });
+});
+
 // ==========================================
 // 2. SERVICIOS DE APLICACIÓN e INFRAESTRUCTURA
 // ==========================================
