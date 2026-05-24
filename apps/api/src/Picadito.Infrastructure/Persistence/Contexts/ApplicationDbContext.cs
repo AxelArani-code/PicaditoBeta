@@ -17,6 +17,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Pitch> Pitches => Set<Pitch>();
     public DbSet<Profile> Profiles => Set<Profile>();
     public DbSet<Venue> Venues => Set<Venue>();
+    public DbSet<AvailabilityRule> AvailabilityRules => Set<AvailabilityRule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

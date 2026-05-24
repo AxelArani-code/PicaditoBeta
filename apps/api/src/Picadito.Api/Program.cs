@@ -34,6 +34,11 @@ using Picadito.Application.Features.Profiles.Queries.GetProfileById;
 using Picadito.Application.Features.Profiles.Queries.GetAllProfiles;
 using Picadito.Application.Features.Profiles.Commands.UpdateProfile;
 using Picadito.Application.Features.Profiles.Commands.DeleteProfile;
+using Picadito.Application.Features.AvailabilityRules.Commands.CreateAvailabilityRule;
+using Picadito.Application.Features.AvailabilityRules.Commands.UpdateAvailabilityRule;
+using Picadito.Application.Features.AvailabilityRules.Commands.DeleteAvailabilityRule;
+using Picadito.Application.Features.AvailabilityRules.Queries.GetAllAvailabilityRules;
+using Picadito.Application.Features.AvailabilityRules.Queries.GetAvailabilityRuleById;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +71,7 @@ builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
 builder.Services.AddScoped<IPitchRepository, PitchRepository>();
 builder.Services.AddScoped<IVenueRepository, VenueRepository>();
 builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
+builder.Services.AddScoped<IAvailabilityRuleRepository, AvailabilityRuleRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 builder.Services.AddScoped<ConfirmBookingHandler>();
 builder.Services.AddScoped<RejectBookingHandler>();
@@ -86,6 +92,13 @@ builder.Services.AddScoped<DeleteVenueHandler>();
 builder.Services.AddScoped<GetAllVenuesHandler>();
 builder.Services.AddScoped<GetVenueByIdHandler>();
 
+// AvailabilityRule Handlers
+builder.Services.AddScoped<CreateAvailabilityRuleHandler>();
+builder.Services.AddScoped<UpdateAvailabilityRuleHandler>();
+builder.Services.AddScoped<DeleteAvailabilityRuleHandler>();
+builder.Services.AddScoped<GetAllAvailabilityRulesHandler>();
+builder.Services.AddScoped<GetAvailabilityRuleByIdHandler>();
+
 // Profile Handlers
 builder.Services.AddScoped<GetMyProfileHandler>();
 builder.Services.AddScoped<GetProfileByIdHandler>();
@@ -100,6 +113,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<CreateVenueCommandValidator
 builder.Services.AddValidatorsFromAssemblyContaining<UpdateVenueCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<GetAllVenuesQueryValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<UpdateProfileValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateAvailabilityRuleValidator>();
 
 // ==========================================
 // 3. SEGURIDAD (JWT & Auth)
