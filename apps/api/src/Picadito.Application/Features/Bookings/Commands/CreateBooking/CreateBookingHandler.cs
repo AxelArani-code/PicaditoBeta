@@ -3,11 +3,9 @@ using System.Diagnostics;
 using Picadito.Domain.Entities;
 using Picadito.Application.Common.Interfaces;
 using FluentValidation;
-using Microsoft.AspNetCore.Http;
 using Picadito.Domain.Errors;
 using Picadito.Domain.Enums;
 using ErrorOr;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Picadito.Application.Features.Bookings.Commands.CreateBooking;
@@ -17,14 +15,14 @@ public class CreateBookingHandler(
     ITimeSlotRepository timeSlotRepository,
     IPitchRepository pitchRepository,
     IValidator<CreateBookingCommand> validator,
-    IHttpContextAccessor httpContextAccessor,
+    ICurrentUserService currentUserService,
     ILogger<CreateBookingHandler> logger) 
 {
     private readonly ILogger<CreateBookingHandler> _logger = logger;
     
     public async Task<ErrorOr<Guid>> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
     {
-        var correlationId = Activity.Current?.Id ?? httpContextAccessor.HttpContext?.TraceIdentifier;
+        var correlationId = Activity.Current?.Id;
         
         using (_logger.BeginScope("CorrelationId: {CorrelationId}, TimeSlotId: {TimeSlotId}", 
             correlationId, request.TimeSlotId))
@@ -55,50 +53,22 @@ public class CreateBookingHandler(
                 return DomainErrors.Booking.NotAvailable;
             }
 
-            // Logica de JWT y manejo de errores
-            var user = httpContextAccessor.HttpContext?.User;
-
-            // Logica de politica: Un usuario debe estar autenticado para crear una reserva.  
-            var userIdClaim = httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim))
+            if (currentUserService.UserId is null)
             {
-                _logger.LogWarning("User not authenticated");
-                return Error.Unauthorized(description: "Usuario no autenticado"  );
-            }
-            var userId = Guid.Parse(userIdClaim);
-
-            // Extraer rol desde app_metadata (formato JSON)
-            var rawRoleClaim = httpContextAccessor.HttpContext?.User.FindFirst("app_metadata")?.Value;
-            string? roleName = null;
-            bool isAdmin = false;
-
-            // Parsing para extraer el rol
-            if (!string.IsNullOrEmpty(rawRoleClaim))
-            {
-                try
-                {
-                    using var jsonDoc = JsonDocument.Parse(rawRoleClaim);
-                    if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
-                    {
-                        roleName = roleElement.GetString();
-                    }
-                }
-                catch
-                {
-                    _logger.LogWarning("Invalid role format in token");
-                    return Error.Unauthorized(description: "El formato del rol en el token es inválido.");
-                }
+                _logger.LogWarning("Intento de acceso de usuario no autenticado.");
+                return Error.Unauthorized(description: "Usuario no autenticado");
             }
 
-            // Determinar el rol del usuario y si es administrador
-            if (!Enum.TryParse<UserRole>(roleName, true, out var userRole))
+            var userId = currentUserService.UserId.Value;
+
+            if (!Enum.TryParse<UserRole>(currentUserService.Role, true, out var userRole))
             {
-                _logger.LogWarning("Invalid role. Role: {Role}", roleName);
-                return Error.Forbidden(code: "Role.Invalid", description: $"El rol '{roleName}' no es reconocido.");
+                _logger.LogWarning("Rol no reconocido: {Role}", currentUserService.Role);
+                return Error.Forbidden(code: "Role.Invalid", description: "El rol no es reconocido.");
             }
 
-            // Verificar si el usuario tiene rol de administrador
-            isAdmin = userRole == UserRole.admin;
+            var isAdmin = currentUserService.IsAdmin;
+            var isOwner = userRole == UserRole.venue_owner;
 
             // Lógica de negocio según el rol del usuario
             if (userRole == UserRole.player)
@@ -109,8 +79,8 @@ public class CreateBookingHandler(
             else if (userRole == UserRole.venue_owner)
             {
                 // Si es Dueño, verificamos que la cancha (Pitch) le pertenezca
-                var isOwner = await pitchRepository.IsOwnerAsync(timeSlot.PitchId, userId, cancellationToken);
-                if (!isOwner) 
+                var isPitchOwner = await pitchRepository.IsOwnerAsync(timeSlot.PitchId, userId, cancellationToken);
+                if (!isPitchOwner) 
                 {
                     _logger.LogWarning("El usuario no es dueño de la cancha. UserId: {UserId}, PitchId: {PitchId}", 
                         userId, timeSlot.PitchId);

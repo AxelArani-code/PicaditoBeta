@@ -26,6 +26,7 @@ public class PitchConfiguration : IEntityTypeConfiguration<Pitch>
         // Mapeo de Enums como string
         builder.Property(e => e.Type)
             .HasColumnName("type")
+            .HasColumnType("pitch_type")
             .HasConversion(
                 // Al guardar en la DB: de Enum a String
                 v => v == PitchType.FiveV5 ? "5v5" :
@@ -43,6 +44,7 @@ public class PitchConfiguration : IEntityTypeConfiguration<Pitch>
         
         builder.Property(e => e.Surface)
             .HasColumnName("surface")
+            .HasColumnType("pitch_surface")
             .HasConversion<string>()
             .IsRequired();
         

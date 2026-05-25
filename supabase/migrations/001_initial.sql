@@ -22,9 +22,11 @@ CREATE TABLE profiles (
     username TEXT UNIQUE,
     full_name TEXT,
     avatar_url TEXT,
-    role user_role DEFAULT 'player',
+    role TEXT DEFAULT 'player',
     created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    -- 2. Added CHECK constraint to enforce valid roles
+    CONSTRAINT check_profiles_role CHECK (role IN ('player', 'venue_owner', 'admin'))
 );
 
 -- VENUES
@@ -49,8 +51,8 @@ CREATE TABLE pitches (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    type pitch_type NOT NULL,
-    surface pitch_surface NOT NULL,
+    type TEXT NOT NULL CONSTRAINT check_pitch_type CHECK (type IN ('5v5', '7v7', '9v9', '11v11')),
+    surface TEXT NOT NULL CONSTRAINT check_pitch_surface CHECK (surface IN ('cesped_natural', 'sintetico', 'cemento', 'parquet')),
     price_per_hour NUMERIC(10,2) NOT NULL,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -318,18 +320,19 @@ RETURNS TRIGGER AS $$
 DECLARE
   v_venue_id UUID;
 BEGIN
+  -- CASO: CONFIRMACIÓN
   IF NEW.status = 'confirmed' AND OLD.status != 'confirmed' THEN
     -- 1. Mark slot as booked
     UPDATE time_slots SET status = 'booked' WHERE id = NEW.time_slot_id;
-    
-    -- 2. Create match
+
+    -- 2. Crea el partido
     -- Need venue_id for the match, get it from pitches
     SELECT venue_id INTO v_venue_id FROM pitches WHERE id = NEW.pitch_id;
     
     INSERT INTO matches (booking_id, venue_id, date, status) 
     VALUES (NEW.id, v_venue_id, NEW.date, 'scheduled')
-    ON CONFLICT (booking_id) DO NOTHING;
-    
+    ON CONFLICT (booking_id) DO UPDATE SET status = 'scheduled';
+
     -- 3. Notify player
     INSERT INTO notifications (user_id, title, message, type, link)
     VALUES (
@@ -339,11 +342,15 @@ BEGIN
       'booking_confirmed',
       '/dashboard/reservas'
     );
+
+  -- CASO: RECHAZO
   ELSIF NEW.status = 'rejected' AND OLD.status != 'rejected' THEN
-    -- Mark slot as available
     UPDATE time_slots SET status = 'available' WHERE id = NEW.time_slot_id;
     
-    -- Notify player
+    -- El partido (si existiera) se marca como cancelado
+    UPDATE matches SET status = 'cancelled' WHERE booking_id = NEW.id;
+    
+    -- 3. Notificar al jugador
     INSERT INTO notifications (user_id, title, message, type, link)
     VALUES (
       NEW.user_id,
@@ -352,8 +359,23 @@ BEGIN
       'booking_rejected',
       '/dashboard/reservas'
     );
+
+  -- CASO: CANCELACIÓN (Reserva confirmada que se cae)
   ELSIF NEW.status = 'cancelled' AND OLD.status != 'cancelled' THEN
     UPDATE time_slots SET status = 'available' WHERE id = NEW.time_slot_id;
+    
+    -- El partido pasa a cancelado para mantener estadísticas
+    UPDATE matches SET status = 'cancelled' WHERE booking_id = NEW.id;
+
+    -- Notificación de cancelación (Lógica añadida para cerrar el ciclo)
+    INSERT INTO notifications (user_id, title, message, type, link)
+    VALUES (
+      NEW.user_id,
+      'Reserva Cancelada',
+      'Tu reserva confirmada ha sido cancelada por el complejo.',
+      'booking_cancelled',
+      '/dashboard/reservas'
+    );
   END IF;
   
   RETURN NEW;
@@ -380,6 +402,17 @@ CREATE TRIGGER set_booking_denormalized_data_trigger
   BEFORE INSERT ON bookings
   FOR EACH ROW EXECUTE FUNCTION set_booking_denormalized_data();
 
+
+-- funcion helper para bypass de admin en RLS
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ==========================================
 -- 6. ROW LEVEL SECURITY (RLS)
@@ -425,10 +458,28 @@ FOR UPDATE USING (
 );
 
 -- PITCHES
-CREATE POLICY "Pitches viewable by everyone if not deleted" ON pitches FOR SELECT USING (deleted_at IS NULL);
-CREATE POLICY "Venue owners can manage pitches" ON pitches FOR ALL USING (
-  EXISTS(SELECT 1 FROM venues WHERE id = venue_id AND owner_id = auth.uid())
+CREATE POLICY "Pitches visibility by role" ON pitches 
+FOR SELECT USING (
+  is_admin() -- 1. Admin ve todo (activas e inactivas)
+  OR (
+    deleted_at IS NULL AND (
+      is_active = true -- 2. Jugadores solo ven activas
+      OR auth.uid() = (SELECT v.owner_id FROM venues v WHERE v.id = venue_id) -- 3. Dueño ve sus inactivas
+    )
+  )
 );
+CREATE POLICY "Admins and Venue owners can update pitches" ON pitches 
+FOR ALL 
+USING (
+  public.is_admin() -- Bypass total si la función retorna true
+  OR 
+  EXISTS (
+      SELECT 1 FROM venues 
+      WHERE venues.id = pitches.venue_id -- El DUEÑO puede gestionar si la cancha pertenece a su local
+      AND venues.owner_id = auth.uid()
+  )
+);
+
 
 -- AVAILABILITY RULES
 CREATE POLICY "Availability rules viewable by everyone" ON availability_rules FOR SELECT USING (true);
