@@ -43,6 +43,19 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // ==========================================
 // 2. SERVICIOS DE APLICACIÓN e INFRAESTRUCTURA
 // ==========================================
+var corsPolicyName = "LocalDevelopment";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(corsPolicyName, policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:3000")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor(); // Necesario para acceder al HttpContext en los Handlers (para JWT)
 builder.Services.AddProblemDetails(); // Middleware para formatear errores automáticamente como ProblemDetails
@@ -121,6 +134,7 @@ if (app.Environment.IsDevelopment())
  
 app.UseStatusCodePages(); // Respuestas automaticas para codigos de estado.
 app.UseHttpsRedirection();
+app.UseCors(corsPolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 

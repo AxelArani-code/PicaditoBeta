@@ -27,6 +27,44 @@ interface ScheduleManagementDrawerProps {
     pitchType?: string;
 }
 
+interface ToggleSwitchProps {
+    checked: boolean;
+    onChange: (value: boolean) => void;
+    labelOn: string;
+    labelOff: string;
+}
+
+function ToggleSwitch({ checked, onChange, labelOn, labelOff }: ToggleSwitchProps) {
+    return (
+        <button
+            type="button"
+            onClick={() => onChange(!checked)}
+            aria-pressed={checked}
+            aria-label={checked ? labelOn : labelOff}
+            className={`inline-flex items-center gap-1 rounded-full border px-1 py-1 min-w-[64px] sm:min-w-[120px] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4be176] ${
+                checked ? "border-[#4be176] bg-[#223824]" : "border-[#3d4a3d] bg-[#161d16]"
+            }`}
+        >
+            <span
+                className={`relative inline-flex h-5 w-10 shrink-0 rounded-full transition-colors duration-200 ease-out ${
+                    checked ? "bg-[#4be176]" : "bg-[#2f372e]"
+                }`}
+            >
+                <span
+                    className={`absolute top-1 h-4 w-4 rounded-full bg-[#dce5d9] shadow-sm transition-all duration-200 ease-out ${
+                        checked ? "right-0.5" : "left-0.5"
+                    }`}
+                />
+            </span>
+            <span className={`hidden sm:inline-block text-[9px] sm:text-[10px] font-black uppercase tracking-[0.24em] ${
+                checked ? "text-[#4be176]" : "text-[#ffb4ab]"
+            }`} aria-hidden>
+                {checked ? labelOn : labelOff}
+            </span>
+        </button>
+    );
+}
+
 export function ScheduleManagementDrawer({
     isOpen,
     onClose,
@@ -238,102 +276,49 @@ export function ScheduleManagementDrawer({
                                     }`}
                                 >
                                     {/* Mobile Layout */}
-                                    <div className="md:hidden space-y-2">
-                                        {/* Day Name + Toggle */}
-                                        <div className="flex items-center justify-between gap-2">
-                                            <div className={`font-bold text-xs sm:text-sm ${
-                                                day.isOpen ? "text-[#dce5d9]" : "text-[#ffb4ab]"
-                                            }`}>
+                                    <div className="md:hidden space-y-3">
+                                        {/* Header: Day name + Toggle */}
+                                        <div className={`flex items-center justify-between gap-3 ${day.isOpen ? '' : 'opacity-60'}`}>
+                                            <div className={`font-bold text-base ${day.isOpen ? 'text-[#dce5d9]' : 'text-[#ffb4ab]'}`}>
                                                 {day.day}
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={day.isOpen}
-                                                    onChange={(e) =>
-                                                        updateDay(idx, "isOpen", e.target.checked)
-                                                    }
-                                                    className="sr-only peer"
-                                                />
-                                                <div
-                                                    className={`w-8 h-5 rounded-full peer-checked:bg-[#4be176] ${
-                                                        day.isOpen ? "bg-[#4be176]" : "bg-[#2f372e]"
-                                                    } transition-all`}
-                                                />
-                                                <span className={`text-[8px] font-bold uppercase ml-2 ${
-                                                    day.isOpen
-                                                        ? "text-[#4be176]"
-                                                        : "text-[#ffb4ab]"
-                                                }`}>
-                                                    {day.isOpen ? "ON" : "OFF"}
-                                                </span>
-                                            </label>
+                                            <ToggleSwitch
+                                                checked={day.isOpen}
+                                                onChange={(value) => updateDay(idx, 'isOpen', value)}
+                                                labelOn="ABIERTO"
+                                                labelOff="CERRADO"
+                                            />
                                         </div>
 
-                                        {/* Time + Prices in 2 rows */}
-                                        <div className={`space-y-2 ${!day.isOpen && "opacity-50 pointer-events-none"}`}>
-                                            {/* Time Range */}
-                                            <div className="flex items-center gap-1 text-xs">
+                                        {/* Time and Price row */}
+                                        <div className={`flex items-center gap-2 justify-between ${!day.isOpen ? 'pointer-events-none opacity-50' : ''}`}>
+                                            <div className="flex items-center gap-2 bg-[#121814] rounded-2xl px-3 py-2 flex-1">
                                                 <input
                                                     type="time"
                                                     value={day.startTime}
-                                                    onChange={(e) => updateDay(idx, "startTime", e.target.value)}
+                                                    onChange={(e) => updateDay(idx, 'startTime', e.target.value)}
                                                     disabled={!day.isOpen}
-                                                    className="w-14 bg-[#0e150e] border border-[#3d4a3d]/60 text-[#dce5d9] text-xs rounded px-1.5 py-1 focus:ring-[#4be176] focus:outline-none disabled:opacity-50"
+                                                    className="w-16 bg-transparent border-none text-[11px] font-black text-[#dce5d9] focus:outline-none"
                                                 />
-                                                <span className="text-[#869585]">/</span>
+                                                <span className="text-[#869585] font-bold text-xs">-</span>
                                                 <input
                                                     type="time"
                                                     value={day.endTime}
-                                                    onChange={(e) => updateDay(idx, "endTime", e.target.value)}
+                                                    onChange={(e) => updateDay(idx, 'endTime', e.target.value)}
                                                     disabled={!day.isOpen}
-                                                    className="w-14 bg-[#0e150e] border border-[#3d4a3d]/60 text-[#dce5d9] text-xs rounded px-1.5 py-1 focus:ring-[#4be176] focus:outline-none disabled:opacity-50"
+                                                    className="w-16 bg-transparent border-none text-[11px] font-black text-[#dce5d9] focus:outline-none"
                                                 />
                                             </div>
 
-                                            {/* Prices - 3 columns */}
-                                            <div className="grid grid-cols-3 gap-1 text-[10px]">
-                                                <div className="relative">
-                                                    <span className="absolute left-1 top-0.5 text-[7px] font-black text-[#4be176] uppercase opacity-60">B</span>
-                                                    <input
-                                                        type="number"
-                                                        value={day.basePrice}
-                                                        onChange={(e) => updateDay(idx, "basePrice", parseInt(e.target.value))}
-                                                        disabled={!day.isOpen}
-                                                        className="w-full pt-3 pb-0.5 pl-1 pr-0.5 bg-[#0e150e] border-none text-xs rounded font-bold text-[#dce5d9] focus:ring-2 focus:ring-[#4be176] focus:outline-none disabled:opacity-50"
-                                                    />
-                                                    <span className="absolute right-0.5 bottom-0.5 text-[8px] text-[#869585]">$</span>
-                                                </div>
-
-                                                <div className="relative">
-                                                    <span className="absolute left-1 top-0.5 text-[7px] font-black text-[#adc6ff] uppercase opacity-60">V</span>
-                                                    <input
-                                                        type="number"
-                                                        value={day.valleyPrice}
-                                                        onChange={(e) => updateDay(idx, "valleyPrice", parseInt(e.target.value))}
-                                                        disabled={!day.isOpen}
-                                                        className="w-full pt-3 pb-0.5 pl-1 pr-0.5 bg-[#0e150e] border-none text-xs rounded font-bold text-[#dce5d9] focus:ring-2 focus:ring-[#4be176] focus:outline-none disabled:opacity-50"
-                                                    />
-                                                    <span className="absolute right-0.5 bottom-0.5 text-[8px] text-[#869585]">$</span>
-                                                </div>
-
-                                                <div className="relative">
-                                                    <span className="absolute left-1 top-0.5 text-[7px] font-black text-[#ffb4aa] uppercase opacity-60">P</span>
-                                                    <input
-                                                        type="number"
-                                                        value={day.peakPrice}
-                                                        onChange={(e) => updateDay(idx, "peakPrice", parseInt(e.target.value))}
-                                                        disabled={!day.isOpen}
-                                                        className="w-full pt-3 pb-0.5 pl-1 pr-0.5 bg-[#0e150e] border-none text-xs rounded font-bold text-[#dce5d9] focus:ring-2 focus:ring-[#4be176] focus:outline-none disabled:opacity-50"
-                                                    />
-                                                    <span className="absolute right-0.5 bottom-0.5 text-[8px] text-[#869585]">$</span>
-                                                </div>
+                                            <div className="rounded-2xl border border-[#3d4a3d]/40 bg-[#121814] px-3 py-2 min-w-fit shrink-0">
+                                                <p className="text-[8px] uppercase tracking-[0.2em] text-[#ffb4aa] leading-none">Pico</p>
+                                                <p className="text-xs font-black text-[#dce5d9]">${day.peakPrice}</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Desktop Layout */}
-                                    <div className="hidden md:grid grid-cols-12 gap-4 items-center">
+                                    <div className="hidden md:grid grid-cols-12 gap-14 items-center">
                                     {/* Day Name */}
                                     <div
                                         className={`col-span-2 font-bold text-sm ${
@@ -344,36 +329,18 @@ export function ScheduleManagementDrawer({
                                     </div>
 
                                     {/* Toggle Open/Closed */}
-                                    <div className="col-span-2">
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={day.isOpen}
-                                                onChange={(e) =>
-                                                    updateDay(idx, "isOpen", e.target.checked)
-                                                }
-                                                className="sr-only peer"
-                                            />
-                                            <div
-                                                className={`w-11 h-6 rounded-full peer-checked:bg-[#4be176] ${
-                                                    day.isOpen ? "bg-[#4be176]" : "bg-[#2f372e]"
-                                                } transition-all`}
-                                            />
-                                            <span
-                                                className={`ml-3 text-xs font-bold uppercase ${
-                                                    day.isOpen
-                                                        ? "text-[#4be176]"
-                                                        : "text-[#ffb4ab]"
-                                                }`}
-                                            >
-                                                {day.isOpen ? "ABIERTO" : "CERRADO"}
-                                            </span>
-                                        </label>
+                                    <div className="col-span-2 flex items-center  justify-start md:justify-center">
+                                        <ToggleSwitch
+                                            checked={day.isOpen}
+                                            onChange={(value) => updateDay(idx, "isOpen", value)}
+                                            labelOn="ABIERTO"
+                                            labelOff="CERRADO"
+                                        />
                                     </div>
 
                                     {/* Time Range */}
                                     <div
-                                        className={`col-span-4 flex items-center gap-2 ${
+                                        className={`col-span-4 flex items-center gap-1  ${
                                             !day.isOpen && "opacity-50 pointer-events-none"
                                         }`}
                                     >
@@ -400,61 +367,15 @@ export function ScheduleManagementDrawer({
 
                                     {/* Prices */}
                                     <div
-                                        className={`col-span-4 flex gap-1 ${
+                                        className={`col-span-3 flex justify-end  ${
                                             !day.isOpen && "opacity-50 pointer-events-none"
                                         }`}
                                     >
-                                        {/* Base Price */}
-                                        <div className="relative w-full">
-                                            <span className="absolute left-2 top-1 text-[8px] font-black text-[#4be176] uppercase opacity-60">
-                                                Base
-                                            </span>
-                                            <input
-                                                type="number"
-                                                value={day.basePrice}
-                                                onChange={(e) =>
-                                                    updateDay(idx, "basePrice", parseInt(e.target.value))
-                                                }
-                                                disabled={!day.isOpen}
-                                                className="w-full pt-4 pb-1 pl-2 bg-[#0e150e] border-none text-xs rounded-lg font-bold text-[#dce5d9] focus:ring-2 focus:ring-[#4be176] focus:outline-none disabled:opacity-50"
-                                            />
-                                            <span className="absolute right-1 bottom-1 text-[10px] text-[#869585]">$</span>
+                                        <div className="rounded-3xl border border-[#3d4a3d]/40 bg-[#121814] px-4 py-3 text-right min-w-[110px] sm:min-w-[130px]">
+                                            <p className="text-[8px] uppercase tracking-[0.2em] text-[#ffb4aa]">Pico</p>
+                                            <p className="text-sm font-black text-[#dce5d9]">${day.peakPrice}</p>
                                         </div>
-
-                                        {/* Valley Price */}
-                                        <div className="relative w-full">
-                                            <span className="absolute left-2 top-1 text-[8px] font-black text-[#adc6ff] uppercase opacity-60">
-                                                Valle
-                                            </span>
-                                            <input
-                                                type="number"
-                                                value={day.valleyPrice}
-                                                onChange={(e) =>
-                                                    updateDay(idx, "valleyPrice", parseInt(e.target.value))
-                                                }
-                                                disabled={!day.isOpen}
-                                                className="w-full pt-4 pb-1 pl-2 bg-[#0e150e] border-none text-xs rounded-lg font-bold text-[#dce5d9] focus:ring-2 focus:ring-[#4be176] focus:outline-none disabled:opacity-50"
-                                            />
-                                            <span className="absolute right-1 bottom-1 text-[10px] text-[#869585]">$</span>
-                                        </div>
-
-                                        {/* Peak Price */}
-                                        <div className="relative w-full">
-                                            <span className="absolute left-2 top-1 text-[8px] font-black text-[#ffb4aa] uppercase opacity-60">
-                                                Pico
-                                            </span>
-                                            <input
-                                                type="number"
-                                                value={day.peakPrice}
-                                                onChange={(e) =>
-                                                    updateDay(idx, "peakPrice", parseInt(e.target.value))
-                                                }
-                                                disabled={!day.isOpen}
-                                                className="w-full pt-4 pb-1 pl-2 bg-[#0e150e] border-none text-xs rounded-lg font-bold text-[#dce5d9] focus:ring-2 focus:ring-[#4be176] focus:outline-none disabled:opacity-50"
-                                            />
-                                            <span className="absolute right-1 bottom-1 text-[10px] text-[#869585]">$</span>
-                                        </div>
-                                        </div>
+                                    </div>
                                     </div>
                                 </div>
                             ))}

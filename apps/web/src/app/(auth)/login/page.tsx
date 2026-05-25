@@ -134,8 +134,17 @@ export default function LoginPage({ onNavigate }: LoginProps) {
           return;
         }
 
+        console.log("📝 Login: guardando AuthSession con token:", {
+          token: data.access_token.substring(0, 30) + "...",
+          fullToken: data.access_token,
+          refreshToken: data.refresh_token ? data.refresh_token.substring(0, 20) + "..." : "no incluido",
+        });
+
+        saveAuthSession(data as AuthSession);
+        
+        console.log("✅ Login: AuthSession guardado en localStorage");
+
         if (rememberMe) {
-          saveAuthSession(data as AuthSession);
           localStorage.setItem(
             REMEMBER_CREDENTIALS_KEY,
             JSON.stringify({
@@ -144,7 +153,6 @@ export default function LoginPage({ onNavigate }: LoginProps) {
             })
           );
         } else {
-          clearAuthSession();
           localStorage.removeItem(REMEMBER_CREDENTIALS_KEY);
         }
 
