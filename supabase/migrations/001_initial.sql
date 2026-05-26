@@ -483,7 +483,9 @@ USING (
 
 -- AVAILABILITY RULES
 CREATE POLICY "Availability rules viewable by everyone" ON availability_rules FOR SELECT USING (true);
-CREATE POLICY "Venue owners can manage rules" ON availability_rules FOR ALL USING (
+CREATE POLICY "Admins y Venue owners can manage rules" ON availability_rules FOR ALL USING (
+  public.is_admin()
+  OR
   EXISTS(
     SELECT 1 FROM pitches p JOIN venues v ON p.venue_id = v.id 
     WHERE p.id = availability_rules.pitch_id AND v.owner_id = auth.uid()

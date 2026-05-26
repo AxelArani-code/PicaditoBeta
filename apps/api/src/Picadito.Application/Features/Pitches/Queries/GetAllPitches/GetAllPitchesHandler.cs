@@ -39,11 +39,10 @@ public class GetAllPitchesHandler(
 
         var userId = currentUserService.UserId.Value;
 
-        if (!Enum.TryParse<UserRole>(currentUserService.Role, true, out var userRole))
-        {
-            _logger.LogWarning("Rol no reconocido: {Role}", currentUserService.Role);
-            return Error.Forbidden(code: "Role.Invalid", description: "El rol no es reconocido.");
-        }
+            if (currentUserService.UserRole is not { } userRole)
+            {
+                return Error.Forbidden(code: "Role.Invalid", description: "El rol no es reconocido.");
+            }
 
         _logger.LogInformation("GetAllPitches request started: UserId={UserId}, Role={Role}, VenueId={VenueId}, Type={Type}, Surface={Surface}, PageNumber={PageNumber}, PageSize={PageSize}",
             userId, userRole, request.VenueId, request.Type, request.Surface, request.PageNumber, request.PageSize);
