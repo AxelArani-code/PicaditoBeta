@@ -119,10 +119,12 @@ builder.Services.AddValidatorsFromAssemblyContaining<UpdateProfileValidator>();
 // ==========================================
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear(); // Esto evita que "sub" se convierta en "http://xmlsoap.org"
 
-var jwtSecret = builder.Configuration["JwtSettings:Secret"]
-    ?? throw new InvalidOperationException("JWT secret no esta configurado. Revisa tus User Secrets.");
+var supabaseUrl = builder.Configuration["Supabase:Url"]
+    ?? builder.Configuration["SUPABASE_URL"]
+    ?? "https://hwsifxidlxfznqevwjnm.supabase.co";
 
-var key = Encoding.ASCII.GetBytes(jwtSecret);
+var jwtAuthority = new Uri(new Uri(supabaseUrl.TrimEnd('/')), "/auth/v1").ToString();
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -130,13 +132,16 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.Authority = jwtAuthority;
+    options.RequireHttpsMetadata = true;
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false, // Supabase no siempre valida el Issuer por defecto
+        ValidateIssuer = true,
+        ValidIssuer = jwtAuthority,
         ValidateAudience = true,
-        ValidAudience = "authenticated" // Este es el valor por defecto en Supabase
+        ValidAudience = "authenticated"
     };
 
     /// El evento OnTokenValidated permite interceptar el JSON crudo de Supabase 
@@ -144,8 +149,27 @@ builder.Services.AddAuthentication(options =>
     ///  de .NET
     options.Events = new JwtBearerEvents
     {
+        OnAuthenticationFailed = context =>
+        {
+            Console.WriteLine($"❌ JWT authentication failed: {context.Exception?.Message}");
+            return Task.CompletedTask;
+        },
         OnTokenValidated = context =>
         {
+            var identity = context.Principal?.Identity as ClaimsIdentity;
+
+            var subClaim = context.Principal?.FindFirst("sub")?.Value;
+            if (!string.IsNullOrEmpty(subClaim) && identity?.FindFirst(ClaimTypes.NameIdentifier) == null)
+            {
+                identity?.AddClaim(new Claim(ClaimTypes.NameIdentifier, subClaim));
+            }
+
+            var emailClaim = context.Principal?.FindFirst("email")?.Value;
+            if (!string.IsNullOrEmpty(emailClaim) && identity?.FindFirst(ClaimTypes.Email) == null)
+            {
+                identity?.AddClaim(new Claim(ClaimTypes.Email, emailClaim));
+            }
+
             var appMetadata = context.Principal?.FindFirst("app_metadata")?.Value;
             if (!string.IsNullOrEmpty(appMetadata))
             {
@@ -155,7 +179,6 @@ builder.Services.AddAuthentication(options =>
                     var role = roleElement.GetString();
                     if (!string.IsNullOrEmpty(role))
                     {
-                        var identity = context.Principal?.Identity as ClaimsIdentity;
                         identity?.AddClaim(new Claim(ClaimTypes.Role, role.ToLowerInvariant()));
                     }
                 }

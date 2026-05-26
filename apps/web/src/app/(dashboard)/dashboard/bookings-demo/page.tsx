@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState } from "react";
-import { getBookings, testBackendConnection } from "../../../../services/bookings.service";
+import { getBookings, getWeatherForecast, getPitches, testBackendConnection } from "../../../../services/bookings.service";
 import { getAccessToken } from "@/lib/auth/session";
 
 const STATUS_OPTIONS = [
@@ -44,6 +44,12 @@ export default function BookingsDashboardPage() {
   const [error, setError] = useState<string>("");
   const [connectionTestResult, setConnectionTestResult] = useState<boolean | null>(null);
   const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
+  const [weatherResponse, setWeatherResponse] = useState<any>(null);
+  const [weatherError, setWeatherError] = useState<string>("");
+  const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
+  const [pitchesResponse, setPitchesResponse] = useState<any>(null);
+  const [pitchesError, setPitchesError] = useState<string>("");
+  const [isLoadingPitches, setIsLoadingPitches] = useState<boolean>(false);
 
   useEffect(() => {
     console.log("📊 Dashboard Bookings: componente montado");
@@ -107,6 +113,44 @@ export default function BookingsDashboardPage() {
     setIsTestingConnection(false);
   };
 
+  const handleWeatherForecast = async () => {
+    setIsLoadingWeather(true);
+    setWeatherError("");
+    setWeatherResponse(null);
+
+    try {
+      const data = await getWeatherForecast();
+      setWeatherResponse(data);
+    } catch (err) {
+      if (err instanceof Error) {
+        setWeatherError(err.message);
+      } else {
+        setWeatherError("Error desconocido al obtener weatherforecast.");
+      }
+    } finally {
+      setIsLoadingWeather(false);
+    }
+  };
+
+  const handleGetPitches = async () => {
+    setIsLoadingPitches(true);
+    setPitchesError("");
+    setPitchesResponse(null);
+
+    try {
+      const data = await getPitches();
+      setPitchesResponse(data);
+    } catch (err) {
+      if (err instanceof Error) {
+        setPitchesError(err.message);
+      } else {
+        setPitchesError("Error desconocido al obtener pitches.");
+      }
+    } finally {
+      setIsLoadingPitches(false);
+    }
+  };
+
   const handlePrev = () => {
     setPageNumber((current) => Math.max(current - 1, 1));
   };
@@ -129,6 +173,52 @@ export default function BookingsDashboardPage() {
         >
           {isTestingConnection ? "Probando conexión..." : "🧪 Probar Conexión Backend"}
         </button>
+        <button
+          onClick={handleWeatherForecast}
+          disabled={isLoadingWeather}
+          className="mt-3 rounded-lg border border-[#68b5ff]/40 bg-[#68b5ff]/10 px-4 py-2 text-sm font-medium text-[#b9e4ff] transition hover:bg-[#68b5ff]/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isLoadingWeather ? "Solicitando weatherforecast..." : "🌤️ Consultar /weatherforecast"}
+        </button>
+
+        <button
+          onClick={handleGetPitches}
+          disabled={isLoadingPitches}
+          className="mt-3 rounded-lg border border-[#ffd05a]/40 bg-[#ffd05a]/10 px-4 py-2 text-sm font-medium text-[#ffefb0] transition hover:bg-[#ffd05a]/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isLoadingPitches ? "Solicitando pitches..." : "⚽ Consultar /api/proxy/pitches"}
+        </button>
+
+        {pitchesResponse && (
+          <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-sm text-[#4c3c00]">
+            <div className="mb-2 font-semibold text-white">Respuesta JSON de /api/proxy/pitches:</div>
+            <pre className="max-h-72 overflow-auto rounded-xl bg-[#1a1305] p-3 text-[11px] leading-5 text-[#ffefb0]">
+              {JSON.stringify(pitchesResponse, null, 2)}
+            </pre>
+          </div>
+        )}
+
+        {pitchesError && (
+          <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+            {pitchesError}
+          </div>
+        )}
+
+        {weatherResponse && (
+          <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4 text-sm text-[#dce5d9]">
+            <div className="mb-2 font-semibold text-white">Respuesta JSON de weatherforecast:</div>
+            <pre className="max-h-72 overflow-auto rounded-xl bg-[#0e1512] p-3 text-[11px] leading-5 text-[#b8f9ff]">
+              {JSON.stringify(weatherResponse, null, 2)}
+            </pre>
+          </div>
+        )}
+
+        {weatherError && (
+          <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+            {weatherError}
+          </div>
+        )}
+
         {connectionTestResult !== null && (
           <div className={`mt-3 rounded-lg p-3 text-sm ${connectionTestResult ? "border border-green-500/30 bg-green-500/10 text-green-200" : "border border-red-500/30 bg-red-500/10 text-red-200"}`}>
             {connectionTestResult ? "✅ Backend conectando correctamente" : "❌ No se puede conectar con el backend"}
