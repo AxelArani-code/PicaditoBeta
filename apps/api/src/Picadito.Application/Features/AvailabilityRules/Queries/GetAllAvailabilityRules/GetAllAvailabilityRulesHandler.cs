@@ -29,11 +29,10 @@ public class GetAllAvailabilityRulesHandler(
 
         var userId = currentUserService.UserId.Value;
 
-        if (!Enum.TryParse<UserRole>(currentUserService.Role, true, out var userRole))
-        {
-            _logger.LogWarning("Rol no reconocido: {Role}", currentUserService.Role);
-            return Error.Forbidden(code: "Role.Invalid", description: "El rol no es reconocido.");
-        }
+            if (currentUserService.UserRole is not { } userRole)
+            {
+                return Error.Forbidden(code: "Role.Invalid", description: "El rol no es reconocido.");
+            }
 
         _logger.LogInformation(
             "GetAllAvailabilityRules request started: UserId={UserId}, Role={Role}, PitchId={PitchId}, PageNumber={PageNumber}, PageSize={PageSize}",
