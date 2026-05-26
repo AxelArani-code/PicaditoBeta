@@ -33,11 +33,10 @@ public class GetBookingsHandler(
 
         var userId = currentUserService.UserId.Value;
 
-        if (!Enum.TryParse<UserRole>(currentUserService.Role, true, out var userRole))
-        {
-            _logger.LogWarning("Rol no reconocido: {Role}", currentUserService.Role);
-            return Error.Forbidden(code: "Role.Invalid", description: "El rol no es reconocido.");
-        }
+            if (currentUserService.UserRole is not { } userRole)
+            {
+                return Error.Forbidden(code: "Role.Invalid", description: "El rol no es reconocido.");
+            }
 
         _logger.LogInformation("GetBookings request started: UserId={UserId}, Role={Role}, Status={Status}, PaymentStatus={PaymentStatus}, PitchId={PitchId}, PageNumber={PageNumber}, PageSize={PageSize}",
             userId, userRole, request.Status, request.PaymentStatus, request.PitchId, request.PageNumber, request.PageSize);

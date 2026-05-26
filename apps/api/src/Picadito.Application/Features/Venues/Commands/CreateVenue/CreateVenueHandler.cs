@@ -47,9 +47,8 @@ public class CreateVenueHandler(
 
             var userId = currentUserService.UserId.Value;
 
-            if (!Enum.TryParse<UserRole>(currentUserService.Role, true, out var userRole))
+            if (currentUserService.UserRole is not { } userRole)
             {
-                _logger.LogWarning("Rol no reconocido: {Role}", currentUserService.Role);
                 return Error.Forbidden(code: "Role.Invalid", description: "El rol no es reconocido.");
             }
 

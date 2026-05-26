@@ -34,6 +34,11 @@ using Picadito.Application.Features.Profiles.Queries.GetProfileById;
 using Picadito.Application.Features.Profiles.Queries.GetAllProfiles;
 using Picadito.Application.Features.Profiles.Commands.UpdateProfile;
 using Picadito.Application.Features.Profiles.Commands.DeleteProfile;
+using Picadito.Application.Features.AvailabilityRules.Commands.CreateAvailabilityRule;
+using Picadito.Application.Features.AvailabilityRules.Commands.UpdateAvailabilityRule;
+using Picadito.Application.Features.AvailabilityRules.Commands.DeleteAvailabilityRule;
+using Picadito.Application.Features.AvailabilityRules.Queries.GetAllAvailabilityRules;
+using Picadito.Application.Features.AvailabilityRules.Queries.GetAvailabilityRuleById;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +56,19 @@ var dataSource = dataSourceBuilder.Build();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(dataSource));
 
+// ================================
+// 1.B DEFINIR LA POLÍTICA DE CORS
+// ================================  
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()    // Permite peticiones desde cualquier origen
+              .AllowAnyMethod()    // Permite cualquier método (GET, POST, PUT, DELETE, etc.)
+              .AllowAnyHeader();   // Permite cualquier cabecera HTTP
+    });
+});
+
 // ==========================================
 // 2. SERVICIOS DE APLICACIÓN e INFRAESTRUCTURA
 // ==========================================
@@ -66,6 +84,7 @@ builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
 builder.Services.AddScoped<IPitchRepository, PitchRepository>();
 builder.Services.AddScoped<IVenueRepository, VenueRepository>();
 builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
+builder.Services.AddScoped<IAvailabilityRuleRepository, AvailabilityRuleRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 builder.Services.AddScoped<ConfirmBookingHandler>();
 builder.Services.AddScoped<RejectBookingHandler>();
@@ -86,6 +105,13 @@ builder.Services.AddScoped<DeleteVenueHandler>();
 builder.Services.AddScoped<GetAllVenuesHandler>();
 builder.Services.AddScoped<GetVenueByIdHandler>();
 
+// AvailabilityRule Handlers
+builder.Services.AddScoped<CreateAvailabilityRuleHandler>();
+builder.Services.AddScoped<UpdateAvailabilityRuleHandler>();
+builder.Services.AddScoped<DeleteAvailabilityRuleHandler>();
+builder.Services.AddScoped<GetAllAvailabilityRulesHandler>();
+builder.Services.AddScoped<GetAvailabilityRuleByIdHandler>();
+
 // Profile Handlers
 builder.Services.AddScoped<GetMyProfileHandler>();
 builder.Services.AddScoped<GetProfileByIdHandler>();
@@ -100,6 +126,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<CreateVenueCommandValidator
 builder.Services.AddValidatorsFromAssemblyContaining<UpdateVenueCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<GetAllVenuesQueryValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<UpdateProfileValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateAvailabilityRuleValidator>();
 
 // ==========================================
 // 3. SEGURIDAD (JWT & Auth)
@@ -123,33 +150,10 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = false, // Supabase no siempre valida el Issuer por defecto
         ValidateAudience = true,
-        ValidAudience = "authenticated" // Este es el valor por defecto en Supabase
+        ValidAudience = "authenticated", // Este es el valor por defecto en Supabase
+ 
     };
 
-    /// El evento OnTokenValidated permite interceptar el JSON crudo de Supabase 
-    /// una sola vez por petición, parsear el rol y guardarlo como un claim estándar
-    ///  de .NET
-    options.Events = new JwtBearerEvents
-    {
-        OnTokenValidated = context =>
-        {
-            var appMetadata = context.Principal?.FindFirst("app_metadata")?.Value;
-            if (!string.IsNullOrEmpty(appMetadata))
-            {
-                using var jsonDoc = JsonDocument.Parse(appMetadata);
-                if (jsonDoc.RootElement.TryGetProperty("role", out var roleElement))
-                {
-                    var role = roleElement.GetString();
-                    if (!string.IsNullOrEmpty(role))
-                    {
-                        var identity = context.Principal?.Identity as ClaimsIdentity;
-                        identity?.AddClaim(new Claim(ClaimTypes.Role, role.ToLowerInvariant()));
-                    }
-                }
-            }
-            return Task.CompletedTask;
-        }
-    };
 });
  
 // ==========================================
