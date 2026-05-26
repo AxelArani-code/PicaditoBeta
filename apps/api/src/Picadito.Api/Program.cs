@@ -39,6 +39,13 @@ using Picadito.Application.Features.AvailabilityRules.Commands.UpdateAvailabilit
 using Picadito.Application.Features.AvailabilityRules.Commands.DeleteAvailabilityRule;
 using Picadito.Application.Features.AvailabilityRules.Queries.GetAllAvailabilityRules;
 using Picadito.Application.Features.AvailabilityRules.Queries.GetAvailabilityRuleById;
+using Picadito.Application.Features.TimeSlots.Commands.CreateTimeSlot;
+using Picadito.Application.Features.TimeSlots.Queries.GetAllTimeSlots;
+using Picadito.Application.Features.TimeSlots.Queries.GetTimeSlotById;
+using Picadito.Application.Features.Matches.Commands.CreateMatch;
+using Picadito.Application.Features.Matches.Commands.UpdateMatch;
+using Picadito.Application.Features.Matches.Queries.GetAllMatches;
+using Picadito.Application.Features.Matches.Queries.GetMatchById;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +58,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
 dataSourceBuilder.MapEnum<BookingStatus>("booking_status");
 dataSourceBuilder.MapEnum<SlotStatus>("slot_status");
+dataSourceBuilder.MapEnum<MatchStatus>("match_status");
 var dataSource = dataSourceBuilder.Build();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -85,6 +93,7 @@ builder.Services.AddScoped<IPitchRepository, PitchRepository>();
 builder.Services.AddScoped<IVenueRepository, VenueRepository>();
 builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
 builder.Services.AddScoped<IAvailabilityRuleRepository, AvailabilityRuleRepository>();
+builder.Services.AddScoped<IMatchRepository, MatchRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 builder.Services.AddScoped<ConfirmBookingHandler>();
 builder.Services.AddScoped<RejectBookingHandler>();
@@ -112,6 +121,17 @@ builder.Services.AddScoped<DeleteAvailabilityRuleHandler>();
 builder.Services.AddScoped<GetAllAvailabilityRulesHandler>();
 builder.Services.AddScoped<GetAvailabilityRuleByIdHandler>();
 
+// TimeSlot Handlers
+builder.Services.AddScoped<CreateTimeSlotHandler>();
+builder.Services.AddScoped<GetAllTimeSlotsHandler>();
+builder.Services.AddScoped<GetTimeSlotByIdHandler>();
+
+// Match Handlers
+builder.Services.AddScoped<CreateMatchHandler>();
+builder.Services.AddScoped<GetAllMatchesHandler>();
+builder.Services.AddScoped<GetMatchByIdHandler>();
+builder.Services.AddScoped<UpdateMatchHandler>();
+
 // Profile Handlers
 builder.Services.AddScoped<GetMyProfileHandler>();
 builder.Services.AddScoped<GetProfileByIdHandler>();
@@ -127,6 +147,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<UpdateVenueCommandValidator
 builder.Services.AddValidatorsFromAssemblyContaining<GetAllVenuesQueryValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<UpdateProfileValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateAvailabilityRuleValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateTimeSlotValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateMatchValidator>();
 
 // ==========================================
 // 3. SEGURIDAD (JWT & Auth)

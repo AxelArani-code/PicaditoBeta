@@ -79,7 +79,7 @@ CREATE TABLE time_slots (
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     price NUMERIC(10,2) NOT NULL,
-    status slot_status DEFAULT 'available',
+    status TEXT NOT NULL CONSTRAINT check_time_slots_status CHECK (status IN ('available', 'booked', 'unavailable')),
     created_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE(pitch_id, date, start_time)
 );
@@ -494,8 +494,10 @@ CREATE POLICY "Admins y Venue owners can manage rules" ON availability_rules FOR
 
 -- TIME SLOTS
 CREATE POLICY "Time slots viewable by everyone" ON time_slots FOR SELECT USING (true);
-CREATE POLICY "Venue owners can manage slots" ON time_slots FOR ALL USING (
-  EXISTS(
+CREATE POLICY "Admins and Venue owners can manage slots" ON time_slots FOR ALL TO authenticated 
+USING (
+  public.is_admin()
+  OR EXISTS (
     SELECT 1 FROM pitches p JOIN venues v ON p.venue_id = v.id 
     WHERE p.id = time_slots.pitch_id AND v.owner_id = auth.uid()
   )
@@ -561,11 +563,23 @@ WITH CHECK (
 
 -- MATCHES
 CREATE POLICY "Matches viewable by everyone" ON matches FOR SELECT USING (true);
-CREATE POLICY "Venue owners and match players can update match" ON matches FOR UPDATE USING (
-  EXISTS(
-    SELECT 1 FROM venues v WHERE v.id = matches.venue_id AND v.owner_id = auth.uid()
-  ) OR EXISTS (
-    SELECT 1 FROM match_players mp WHERE mp.match_id = matches.id AND mp.user_id = auth.uid()
+CREATE POLICY "Admins, Venue owners and players can update match" ON matches 
+FOR UPDATE 
+TO authenticated 
+USING (
+  -- Permiso 1: El usuario es Administrador (bypass total)
+  public.is_admin()
+  
+  -- Permiso 2: El usuario es el dueño del establecimiento (venue) donde se juega el partido
+  OR EXISTS (
+    SELECT 1 FROM venues v 
+    WHERE v.id = matches.venue_id AND v.owner_id = auth.uid()
+  ) 
+  
+  -- Permiso 3: El usuario es un jugador inscrito en este partido específico
+  OR EXISTS (
+    SELECT 1 FROM match_players mp 
+    WHERE mp.match_id = matches.id AND mp.user_id = auth.uid()
   )
 );
 

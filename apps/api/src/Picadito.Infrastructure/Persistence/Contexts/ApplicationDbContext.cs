@@ -18,6 +18,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Profile> Profiles => Set<Profile>();
     public DbSet<Venue> Venues => Set<Venue>();
     public DbSet<AvailabilityRule> AvailabilityRules => Set<AvailabilityRule>();
+    public DbSet<Match> Matches => Set<Match>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +29,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.HasPostgresEnum<SlotStatus>("slot_status");
         modelBuilder.HasPostgresEnum<PitchType>("pitch_type");
         modelBuilder.HasPostgresEnum<SurfaceType>("pitch_surface");
+        modelBuilder.HasPostgresEnum<MatchStatus>("match_status");
 
         // 2. Aplica automáticamente todas las configuraciones de entidades
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
