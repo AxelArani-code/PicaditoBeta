@@ -98,7 +98,7 @@ CREATE TABLE bookings (
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     deleted_at TIMESTAMPTZ
-);
+); 
 
 -- MATCHES
 -- (Added venue_id and date for denormalized indexing and performance)
