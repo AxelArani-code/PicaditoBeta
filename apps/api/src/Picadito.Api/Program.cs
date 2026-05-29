@@ -18,6 +18,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Picadito.Application.Features.Bookings.Queries.GetBookings;
+using Picadito.Application.Features.Bookings.Queries.GetBookingById;
 using Picadito.Application.Features.Bookings.Commands.ConfirmBooking;
 using Picadito.Application.Features.Bookings.Commands.RejectBooking;
 using Picadito.Application.Features.Bookings.Commands.CancelBooking;
@@ -56,6 +57,15 @@ using Picadito.Application.Features.TeamMembers.Commands.UpdateTeamMember;
 using Picadito.Application.Features.TeamMembers.Commands.DeleteTeamMember;
 using Picadito.Application.Features.TeamMembers.Queries.GetAllTeamMembers;
 using Picadito.Application.Features.TeamMembers.Queries.GetTeamMemberById;
+using Picadito.Application.Features.Notifications.Commands.CreateNotification;
+using Picadito.Application.Features.Notifications.Commands.UpdateNotification;
+using Picadito.Application.Features.Notifications.Commands.DeleteNotification;
+using Picadito.Application.Features.Notifications.Queries.GetAllNotifications;
+using Picadito.Application.Features.Notifications.Queries.GetNotificationById;
+using Picadito.Application.Features.VenueRatings.Commands.CreateVenueRating;
+using Picadito.Application.Features.VenueRatings.Commands.DeleteVenueRating;
+using Picadito.Application.Features.VenueRatings.Queries.GetAllVenueRatings;
+using Picadito.Application.Features.VenueRatings.Queries.GetVenueRatingById;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -106,11 +116,14 @@ builder.Services.AddScoped<IAvailabilityRuleRepository, AvailabilityRuleReposito
 builder.Services.AddScoped<IMatchRepository, MatchRepository>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IVenueRatingRepository, VenueRatingRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 builder.Services.AddScoped<ConfirmBookingHandler>();
 builder.Services.AddScoped<RejectBookingHandler>();
 builder.Services.AddScoped<CancelBookingHandler>();
 builder.Services.AddScoped<GetBookingsHandler>();
+builder.Services.AddScoped<GetBookingByIdHandler>();
 
 // Pitch Handlers
 builder.Services.AddScoped<GetPitchByIdHandler>();
@@ -158,6 +171,19 @@ builder.Services.AddScoped<DeleteTeamMemberHandler>();
 builder.Services.AddScoped<GetAllTeamMembersHandler>();
 builder.Services.AddScoped<GetTeamMemberByIdHandler>();
 
+// Notification Handlers
+builder.Services.AddScoped<CreateNotificationHandler>();
+builder.Services.AddScoped<UpdateNotificationHandler>();
+builder.Services.AddScoped<DeleteNotificationHandler>();
+builder.Services.AddScoped<GetAllNotificationsHandler>();
+builder.Services.AddScoped<GetNotificationByIdHandler>();
+
+// VenueRating Handlers
+builder.Services.AddScoped<CreateVenueRatingHandler>();
+builder.Services.AddScoped<DeleteVenueRatingHandler>();
+builder.Services.AddScoped<GetAllVenueRatingsHandler>();
+builder.Services.AddScoped<GetVenueRatingByIdHandler>();
+
 // Profile Handlers
 builder.Services.AddScoped<GetMyProfileHandler>();
 builder.Services.AddScoped<GetProfileByIdHandler>();
@@ -181,6 +207,12 @@ builder.Services.AddValidatorsFromAssemblyContaining<GetAllTeamsQueryValidator>(
 builder.Services.AddValidatorsFromAssemblyContaining<CreateTeamMemberCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<UpdateTeamMemberCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<GetAllTeamMembersQueryValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateNotificationCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateNotificationCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetAllNotificationsQueryValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateVenueRatingCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetAllVenueRatingsQueryValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetBookingByIdQueryValidator>();
 
 // ==========================================
 // 3. SEGURIDAD (JWT & Auth)

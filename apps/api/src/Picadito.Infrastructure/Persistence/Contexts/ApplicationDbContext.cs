@@ -19,8 +19,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<Venue> Venues => Set<Venue>();
     public DbSet<AvailabilityRule> AvailabilityRules => Set<AvailabilityRule>();
     public DbSet<Match> Matches => Set<Match>();
+    public DbSet<MatchPlayer> MatchPlayers => Set<MatchPlayer>();
     public DbSet<Team> Teams => Set<Team>();
     public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<VenueRating> VenueRatings => Set<VenueRating>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

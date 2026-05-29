@@ -622,7 +622,12 @@ CREATE POLICY "Participants can rate" ON venue_ratings FOR INSERT WITH CHECK (
 
 -- NOTIFICATIONS
 CREATE POLICY "Users can view own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can update own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Admins and Users can update own notifications" ON notifications
+  FOR UPDATE USING (
+  public.is_admin() 
+  OR
+  auth.uid() = user_id
+  );
 
 -- AUDIT LOGS
 CREATE POLICY "Venue owners can view their audit logs" ON audit_logs FOR SELECT USING (
