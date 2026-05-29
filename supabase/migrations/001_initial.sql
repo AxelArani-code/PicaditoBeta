@@ -595,11 +595,19 @@ CREATE POLICY "Match players manageable by participant or owner" ON match_player
 
 -- TEAMS
 CREATE POLICY "Teams viewable by everyone if not deleted" ON teams FOR SELECT USING (deleted_at IS NULL);
-CREATE POLICY "Captain can manage team" ON teams FOR ALL USING (captain_id = auth.uid());
+CREATE POLICY "Admins y Captain can manage team" ON public.teams
+FOR All 
+USING (
+  public.is_admin() -- Bypass total para Admin
+  OR 
+  captain_id = auth.uid()
+);
 
 -- TEAM MEMBERS
 CREATE POLICY "Team members viewable by everyone" ON team_members FOR SELECT USING (true);
-CREATE POLICY "Captain can manage team members" ON team_members FOR ALL USING (
+CREATE POLICY "Admins and Captain can manage team members" ON team_members FOR ALL USING (
+  public.is_admin()
+  OR
   EXISTS(SELECT 1 FROM teams WHERE id = team_id AND captain_id = auth.uid()) OR user_id = auth.uid()
 );
 

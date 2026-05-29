@@ -12,6 +12,7 @@ public class TeamDto
     public string Slug { get; set; } = string.Empty;
     public string? LogoUrl { get; set; }
     public DateTime CreatedAt { get; set; }
+    public int MemberCount { get; set; }
 }
 
 /// <summary>

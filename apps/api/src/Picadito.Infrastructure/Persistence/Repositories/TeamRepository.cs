@@ -80,7 +80,8 @@ public class TeamRepository : ITeamRepository
                     Name = t.Name,
                     Slug = t.Slug,
                     LogoUrl = t.LogoUrl,
-                    CreatedAt = t.CreatedAt
+                    CreatedAt = t.CreatedAt,
+                    MemberCount = t.TeamMembers.Count
                 })
                 .ToListAsync(cancellationToken);
 
@@ -135,7 +136,8 @@ public class TeamRepository : ITeamRepository
                     Name = t.Name,
                     Slug = t.Slug,
                     LogoUrl = t.LogoUrl,
-                    CreatedAt = t.CreatedAt
+                    CreatedAt = t.CreatedAt,
+                    MemberCount = t.TeamMembers.Count
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 

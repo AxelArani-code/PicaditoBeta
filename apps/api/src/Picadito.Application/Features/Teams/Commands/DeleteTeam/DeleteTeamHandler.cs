@@ -49,7 +49,7 @@ public class DeleteTeamHandler(
                 return DomainErrors.Team.NotFound;
             }
 
-            // Verificar permisos según la política RLS "Captain can manage team"
+            // Verificar permisos según la política RLS "Admins y Captain can manage team"
             if (!isAdmin && team.CaptainId != userId)
             {
                 _logger.LogWarning(

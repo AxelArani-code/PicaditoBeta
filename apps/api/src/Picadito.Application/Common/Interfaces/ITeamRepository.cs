@@ -40,7 +40,7 @@ public interface ITeamRepository
     Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Verifica si el usuario es el capitán del equipo.
+    /// Verifica si el usuario es el capitán del equipo mediante captain_id.
     /// </summary>
     Task<bool> IsCaptainAsync(Guid teamId, Guid userId, CancellationToken cancellationToken);
 

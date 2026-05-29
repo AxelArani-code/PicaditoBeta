@@ -61,8 +61,9 @@ public class UpdateTeamHandler(
                 return DomainErrors.Team.NotFound;
             }
 
-            // Verificar permisos: la política RLS "Captain can manage team"
-            // permite solo al capitán o al administrador modificar el equipo
+            // Verificar permisos: la política RLS "Admins y Captain can manage team"
+            // permite solo al administrador o al usuario cuyo id coincida con
+            // captain_id del equipo.
             if (!isAdmin && team.CaptainId != userId)
             {
                 _logger.LogWarning(

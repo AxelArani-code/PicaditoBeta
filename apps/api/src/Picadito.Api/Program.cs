@@ -51,6 +51,11 @@ using Picadito.Application.Features.Teams.Commands.UpdateTeam;
 using Picadito.Application.Features.Teams.Commands.DeleteTeam;
 using Picadito.Application.Features.Teams.Queries.GetAllTeams;
 using Picadito.Application.Features.Teams.Queries.GetTeamById;
+using Picadito.Application.Features.TeamMembers.Commands.CreateTeamMember;
+using Picadito.Application.Features.TeamMembers.Commands.UpdateTeamMember;
+using Picadito.Application.Features.TeamMembers.Commands.DeleteTeamMember;
+using Picadito.Application.Features.TeamMembers.Queries.GetAllTeamMembers;
+using Picadito.Application.Features.TeamMembers.Queries.GetTeamMemberById;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,6 +105,7 @@ builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
 builder.Services.AddScoped<IAvailabilityRuleRepository, AvailabilityRuleRepository>();
 builder.Services.AddScoped<IMatchRepository, MatchRepository>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
+builder.Services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 builder.Services.AddScoped<ConfirmBookingHandler>();
 builder.Services.AddScoped<RejectBookingHandler>();
@@ -145,6 +151,13 @@ builder.Services.AddScoped<DeleteTeamHandler>();
 builder.Services.AddScoped<GetAllTeamsHandler>();
 builder.Services.AddScoped<GetTeamByIdHandler>();
 
+// TeamMember Handlers
+builder.Services.AddScoped<CreateTeamMemberHandler>();
+builder.Services.AddScoped<UpdateTeamMemberHandler>();
+builder.Services.AddScoped<DeleteTeamMemberHandler>();
+builder.Services.AddScoped<GetAllTeamMembersHandler>();
+builder.Services.AddScoped<GetTeamMemberByIdHandler>();
+
 // Profile Handlers
 builder.Services.AddScoped<GetMyProfileHandler>();
 builder.Services.AddScoped<GetProfileByIdHandler>();
@@ -165,6 +178,9 @@ builder.Services.AddValidatorsFromAssemblyContaining<CreateMatchValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateTeamCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<UpdateTeamCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<GetAllTeamsQueryValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateTeamMemberCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateTeamMemberCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetAllTeamMembersQueryValidator>();
 
 // ==========================================
 // 3. SEGURIDAD (JWT & Auth)

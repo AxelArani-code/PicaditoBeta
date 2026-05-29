@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 
 namespace Picadito.Domain.Entities;
 
@@ -10,7 +10,8 @@ public class Team
 {
     public Guid Id { get; set; }
 
-    // Relación con el perfil del capitán (dueño del equipo)
+    // Relación con el perfil del capitán (campo denormalizado para consultas rápidas).
+    // La fuente de verdad para autorización es team_members con role = 'captain'.
     public Guid CaptainId { get; set; }
 
     public string Name { get; set; } = string.Empty;
@@ -26,4 +27,7 @@ public class Team
 
     // Navigation Property: el perfil del capitán del equipo
     public virtual Profile Captain { get; set; } = null!;
+
+    // Navigation Property: colección de miembros del equipo
+    public virtual ICollection<TeamMember> TeamMembers { get; set; } = new List<TeamMember>();
 }
