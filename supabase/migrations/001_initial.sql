@@ -630,10 +630,16 @@ CREATE POLICY "Admins and Users can update own notifications" ON notifications
   );
 
 -- AUDIT LOGS
-CREATE POLICY "Venue owners can view their audit logs" ON audit_logs FOR SELECT USING (
+CREATE POLICY "Admins and Venue owners can view their audit logs" ON audit_logs 
+FOR SELECT USING (
+  public.is_admin() -- El Admin ve todo
+  OR
   auth.uid() = user_id
 );
-CREATE POLICY "Venue owners can insert audit logs" ON audit_logs FOR INSERT WITH CHECK (
+CREATE POLICY "Admins and Venue owners can insert audit logs" ON audit_logs 
+FOR INSERT WITH CHECK (
+  public.is_admin() -- El Admin puede insertar con cualquier user_id
+  OR
   auth.uid() = user_id
 );
 

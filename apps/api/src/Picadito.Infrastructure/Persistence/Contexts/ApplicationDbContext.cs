@@ -24,6 +24,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<VenueRating> VenueRatings => Set<VenueRating>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

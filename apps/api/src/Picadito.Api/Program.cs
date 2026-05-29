@@ -66,6 +66,9 @@ using Picadito.Application.Features.VenueRatings.Commands.CreateVenueRating;
 using Picadito.Application.Features.VenueRatings.Commands.DeleteVenueRating;
 using Picadito.Application.Features.VenueRatings.Queries.GetAllVenueRatings;
 using Picadito.Application.Features.VenueRatings.Queries.GetVenueRatingById;
+using Picadito.Application.Features.AuditLogs.Commands.CreateAuditLog;
+using Picadito.Application.Features.AuditLogs.Queries.GetAllAuditLogs;
+using Picadito.Application.Features.AuditLogs.Queries.GetAuditLogById;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -118,6 +121,7 @@ builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IVenueRatingRepository, VenueRatingRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 builder.Services.AddScoped<ConfirmBookingHandler>();
 builder.Services.AddScoped<RejectBookingHandler>();
@@ -184,6 +188,11 @@ builder.Services.AddScoped<DeleteVenueRatingHandler>();
 builder.Services.AddScoped<GetAllVenueRatingsHandler>();
 builder.Services.AddScoped<GetVenueRatingByIdHandler>();
 
+// AuditLog Handlers
+builder.Services.AddScoped<CreateAuditLogHandler>();
+builder.Services.AddScoped<GetAllAuditLogsHandler>();
+builder.Services.AddScoped<GetAuditLogByIdHandler>();
+
 // Profile Handlers
 builder.Services.AddScoped<GetMyProfileHandler>();
 builder.Services.AddScoped<GetProfileByIdHandler>();
@@ -213,6 +222,10 @@ builder.Services.AddValidatorsFromAssemblyContaining<GetAllNotificationsQueryVal
 builder.Services.AddValidatorsFromAssemblyContaining<CreateVenueRatingCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<GetAllVenueRatingsQueryValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<GetBookingByIdQueryValidator>();
+
+// AuditLog Validators
+builder.Services.AddValidatorsFromAssemblyContaining<CreateAuditLogCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetAllAuditLogsQueryValidator>();
 
 // ==========================================
 // 3. SEGURIDAD (JWT & Auth)
