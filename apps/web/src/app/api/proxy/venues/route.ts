@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-const BACKEND_BASE_URL = "http://localhost:5000/api/Bookings";
+const BACKEND_BASE_URL = "http://localhost:5000/api/Venues";
 
-const forwardRequest = async (request, method) => {
+export async function GET(request: Request) {
   const url = new URL(request.url);
   const backendUrl = new URL(BACKEND_BASE_URL);
 
@@ -11,7 +11,9 @@ const forwardRequest = async (request, method) => {
   });
 
   const authorization = request.headers.get("authorization");
-  console.log("🔵 proxy/bookings: REQUEST RECIBIDO", { method, backendUrl: backendUrl.toString() });
+  console.log("🔵 proxy/venues: REQUEST RECIBIDO");
+  console.log("🔵 proxy/venues: authorization header presente?", authorization ? "✓ SÍ" : "✗ NO");
+  console.log("🔵 proxy/venues: backendUrl:", backendUrl.toString());
 
   const requestHeaders = {
     Accept: "*/*",
@@ -21,9 +23,14 @@ const forwardRequest = async (request, method) => {
 
   try {
     const response = await fetch(backendUrl.toString(), {
-      method,
+      method: "GET",
       headers: requestHeaders,
-      body: method === "POST" || method === "PATCH" ? await request.text() : undefined,
+    });
+
+    console.log("🔵 proxy/venues: RESPUESTA DEL BACKEND", {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
     });
 
     const body = await response.text();
@@ -38,18 +45,10 @@ const forwardRequest = async (request, method) => {
       headers: responseHeaders,
     });
   } catch (error) {
-    console.error("❌ proxy/bookings: error en fetch:", error);
+    console.error("❌ proxy/venues: error en fetch:", error);
     return new NextResponse(JSON.stringify({ error: "No se pudo conectar al backend" }), {
       status: 502,
       headers: { "content-type": "application/json" },
     });
   }
-};
-
-export async function GET(request: Request) {
-  return forwardRequest(request, "GET");
-}
-
-export async function POST(request: Request) {
-  return forwardRequest(request, "POST");
 }

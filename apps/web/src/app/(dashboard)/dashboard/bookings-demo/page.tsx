@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState } from "react";
-import { getBookings, getWeatherForecast, getPitches, testBackendConnection } from "../../../../services/bookings.service";
+import { getBookings, getPitches, getVenues, testBackendConnection } from "../../../../services/bookings.service";
 import { getAccessToken } from "@/lib/auth/session";
 
 const STATUS_OPTIONS = [
@@ -44,12 +44,12 @@ export default function BookingsDashboardPage() {
   const [error, setError] = useState<string>("");
   const [connectionTestResult, setConnectionTestResult] = useState<boolean | null>(null);
   const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
-  const [weatherResponse, setWeatherResponse] = useState<any>(null);
-  const [weatherError, setWeatherError] = useState<string>("");
-  const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
   const [pitchesResponse, setPitchesResponse] = useState<any>(null);
   const [pitchesError, setPitchesError] = useState<string>("");
   const [isLoadingPitches, setIsLoadingPitches] = useState<boolean>(false);
+  const [venuesResponse, setVenuesResponse] = useState<any>(null);
+  const [venuesError, setVenuesError] = useState<string>("");
+  const [isLoadingVenues, setIsLoadingVenues] = useState<boolean>(false);
 
   useEffect(() => {
     console.log("📊 Dashboard Bookings: componente montado");
@@ -113,25 +113,6 @@ export default function BookingsDashboardPage() {
     setIsTestingConnection(false);
   };
 
-  const handleWeatherForecast = async () => {
-    setIsLoadingWeather(true);
-    setWeatherError("");
-    setWeatherResponse(null);
-
-    try {
-      const data = await getWeatherForecast();
-      setWeatherResponse(data);
-    } catch (err) {
-      if (err instanceof Error) {
-        setWeatherError(err.message);
-      } else {
-        setWeatherError("Error desconocido al obtener weatherforecast.");
-      }
-    } finally {
-      setIsLoadingWeather(false);
-    }
-  };
-
   const handleGetPitches = async () => {
     setIsLoadingPitches(true);
     setPitchesError("");
@@ -148,6 +129,25 @@ export default function BookingsDashboardPage() {
       }
     } finally {
       setIsLoadingPitches(false);
+    }
+  };
+
+  const handleGetVenues = async () => {
+    setIsLoadingVenues(true);
+    setVenuesError("");
+    setVenuesResponse(null);
+
+    try {
+      const data = await getVenues();
+      setVenuesResponse(data);
+    } catch (err) {
+      if (err instanceof Error) {
+        setVenuesError(err.message);
+      } else {
+        setVenuesError("Error desconocido al obtener venues.");
+      }
+    } finally {
+      setIsLoadingVenues(false);
     }
   };
 
@@ -173,13 +173,6 @@ export default function BookingsDashboardPage() {
         >
           {isTestingConnection ? "Probando conexión..." : "🧪 Probar Conexión Backend"}
         </button>
-        <button
-          onClick={handleWeatherForecast}
-          disabled={isLoadingWeather}
-          className="mt-3 rounded-lg border border-[#68b5ff]/40 bg-[#68b5ff]/10 px-4 py-2 text-sm font-medium text-[#b9e4ff] transition hover:bg-[#68b5ff]/20 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isLoadingWeather ? "Solicitando weatherforecast..." : "🌤️ Consultar /weatherforecast"}
-        </button>
 
         <button
           onClick={handleGetPitches}
@@ -188,6 +181,29 @@ export default function BookingsDashboardPage() {
         >
           {isLoadingPitches ? "Solicitando pitches..." : "⚽ Consultar /api/proxy/pitches"}
         </button>
+
+        <button
+          onClick={handleGetVenues}
+          disabled={isLoadingVenues}
+          className="mt-3 rounded-lg border border-[#7cceff]/40 bg-[#7cceff]/10 px-4 py-2 text-sm font-medium text-[#eaf8ff] transition hover:bg-[#7cceff]/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isLoadingVenues ? "Solicitando venues..." : "🏟️ Consultar /api/proxy/venues"}
+        </button>
+
+        {venuesResponse && (
+          <div className="mt-4 rounded-2xl border border-sky-400/20 bg-sky-500/10 p-4 text-sm text-[#0d2b3a]">
+            <div className="mb-2 font-semibold text-white">Respuesta JSON de /api/proxy/venues:</div>
+            <pre className="max-h-72 overflow-auto rounded-xl bg-[#07121d] p-3 text-[11px] leading-5 text-[#cde8ff]">
+              {JSON.stringify(venuesResponse, null, 2)}
+            </pre>
+          </div>
+        )}
+
+        {venuesError && (
+          <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+            {venuesError}
+          </div>
+        )}
 
         {pitchesResponse && (
           <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-sm text-[#4c3c00]">
@@ -201,21 +217,6 @@ export default function BookingsDashboardPage() {
         {pitchesError && (
           <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
             {pitchesError}
-          </div>
-        )}
-
-        {weatherResponse && (
-          <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4 text-sm text-[#dce5d9]">
-            <div className="mb-2 font-semibold text-white">Respuesta JSON de weatherforecast:</div>
-            <pre className="max-h-72 overflow-auto rounded-xl bg-[#0e1512] p-3 text-[11px] leading-5 text-[#b8f9ff]">
-              {JSON.stringify(weatherResponse, null, 2)}
-            </pre>
-          </div>
-        )}
-
-        {weatherError && (
-          <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
-            {weatherError}
           </div>
         )}
 

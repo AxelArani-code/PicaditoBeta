@@ -4,21 +4,29 @@ import { useState } from "react";
 import {
     Search,
     ShieldCheck,
-    Plus,
-    Bell,
-    Settings,
     PlusCircle,
     Building2,
     UserPlus,
     Pencil,
     ExternalLink,
     Grid3x3,
-    Filter,
     MapPin,
     Landmark,
     Users,
+    Check,
+    X,
+    Loader2,
+    RefreshCw,
 } from "lucide-react";
+import { useBookings, transformBookingForUI } from "@/hooks/useBookings";
 import { ScheduleManagementDrawer } from "@/components/dashboard/ScheduleManagementDrawer";
+import Pagination from "@/components/dashboard/Pagination";
+import BookingConfirmationModal from "@/components/modals/BookingConfirmationModal";
+import { BookingDetailModal } from "@/components/dashboard/BookingDetailModal";
+import { PaymentStatusBadge } from "@/components/dashboard/PaymentStatusBadge";
+import { RecentActivityTimeline } from "@/components/dashboard/RecentActivityTimeline";
+import EmptyState from "@/components/dashboard/EmptyState";
+import { formatPrice } from "@/services/bookings.service";
 
 interface Field {
     name: string;
@@ -29,9 +37,174 @@ interface Field {
     reserveNow: boolean;
 }
 
+interface Booking {
+    id: string;
+    pitchName: string;
+    userName: string;
+    status: "pending" | "confirmed" | "rejected" | "cancelled";
+    date: string;
+    totalPrice: number;
+    createdAt: string;
+    updatedAt: string;
+    paymentStatus: string;
+}
+
+interface VenueOption {
+    value: string;
+    label: string;
+}
+
+interface BookingAnalytics {
+    totalIncome: number;
+    totalReservations: number;
+    activeReservations: number;
+    occupancyRate: number;
+}
+
+interface RecentActivityItem {
+    id: string;
+    actionText: string;
+    actionType: "pending" | "confirmed" | "rejected" | "cancelled";
+    userName: string;
+    timestamp: Date;
+    booking: Record<string, unknown>;
+}
+
+interface BookingsHookReturn {
+    bookings: Booking[];
+    totalCount: number;
+    totalPages: number;
+    pageNumber: number;
+    loading: boolean;
+    error: string | null;
+    statusFilter: string;
+    actionLoading: string | null;
+    sortBy: string;
+    autoRefreshEnabled: boolean;
+    selectedVenue: string;
+    venueOptions: VenueOption[];
+    analytics: {
+        totalReservations: number;
+        totalIncome: number;
+        activeReservations: number;
+        occupancyRate: number;
+        bookingsByState: Record<string, number>;
+        bookingsByPayment: Record<string, number>;
+        revenueByVenue: Record<string, number>;
+        trendByDate: Record<string, number>;
+        busiestHours: Record<string, number>;
+        mostUsedPitch: string;
+        topVenue: string;
+    };
+    getVenueLabel: (value: string) => string;
+    kpis: BookingAnalytics;
+    recentActivity: RecentActivityItem[];
+    handleStatusFilterChange: (newStatus: string) => void;
+    handleVenueChange: (newVenue: string) => void;
+    handlePrevPage: () => void;
+    handleNextPage: () => void;
+    handleConfirmBooking: (bookingId: string) => Promise<boolean>;
+    handleRejectBooking: (bookingId: string) => Promise<boolean>;
+    handleCancelBooking: (bookingId: string) => Promise<void>;
+    handleSortChange: (newSortBy: string) => void;
+    toggleAutoRefresh: (enabled: boolean) => void;
+}
+
 export default function DashboardPage() {
     const [isScheduleDrawerOpen, setIsScheduleDrawerOpen] = useState(false);
-    const [selectedField, setSelectedField] = useState<Field | null>(null);
+    const [selectedField] = useState<Field | null>(null);
+    const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+    const [activeBooking, setActiveBooking] = useState<Booking | null>(null);
+    const [actionType, setActionType] = useState<"confirm" | "reject" | null>(null);
+    const [modalLoading, setModalLoading] = useState(false);
+    const [modalError, setModalError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    
+    // Nuevos estados para detail modal
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [selectedBookingForDetail, setSelectedBookingForDetail] = useState<Booking | null>(null);
+
+    // Hook para manejar bookings reales con todas las funcionalidades
+    const bookingsContext = useBookings();
+    const {
+        bookings,
+        totalCount,
+        totalPages,
+        pageNumber,
+        loading,
+        error,
+        statusFilter,
+        actionLoading,
+        sortBy,
+        autoRefreshEnabled,
+        selectedVenue,
+        venueOptions,
+        analytics,
+        getVenueLabel,
+        kpis,
+        recentActivity,
+        handleStatusFilterChange,
+        handleVenueChange,
+        handlePrevPage,
+        handleNextPage,
+        handleConfirmBooking,
+        handleRejectBooking,
+        handleCancelBooking,
+        handleSortChange,
+        toggleAutoRefresh,
+    } = bookingsContext as unknown as BookingsHookReturn;
+
+    const openActionModal = (booking: Booking, type: "confirm" | "reject") => {
+        setActiveBooking(booking);
+        setActionType(type);
+        setModalError(null);
+        setIsActionModalOpen(true);
+    };
+
+    const closeActionModal = () => {
+        if (modalLoading) return;
+        setIsActionModalOpen(false);
+        setActiveBooking(null);
+        setActionType(null);
+        setModalError(null);
+    };
+
+    const openDetailModal = (booking: Booking) => {
+        setSelectedBookingForDetail(booking);
+        setIsDetailModalOpen(true);
+    };
+
+    const closeDetailModal = () => {
+        setIsDetailModalOpen(false);
+        setSelectedBookingForDetail(null);
+    };
+
+    const handleModalConfirmAction = async () => {
+        if (!activeBooking || !actionType) return;
+
+        setModalLoading(true);
+        setModalError(null);
+
+        const success =
+            actionType === "confirm"
+                ? await handleConfirmBooking(activeBooking.id)
+                : await handleRejectBooking(activeBooking.id);
+
+        setModalLoading(false);
+
+        if (success) {
+            setSuccessMessage(
+                actionType === "confirm"
+                    ? `Reserva de la cancha ${activeBooking.pitchName} confirmada correctamente.`
+                    : `Reserva de la cancha ${activeBooking.pitchName} rechazada correctamente.`
+            );
+            closeActionModal();
+            window.setTimeout(() => setSuccessMessage(null), 4500);
+            return;
+        }
+
+        setModalError("No se pudo completar la acción. Intenta nuevamente.");
+    };
 
     return (
         <div className="animate-fade-in min-h-full bg-[radial-gradient(1200px_500px_at_80%_-10%,rgba(75,225,118,0.18),transparent_65%),radial-gradient(1000px_420px_at_10%_0%,rgba(5,102,217,0.12),transparent_60%),#0e150e] p-4 text-[#dce5d9] sm:p-6">
@@ -75,10 +248,16 @@ export default function DashboardPage() {
                     <div className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 backdrop-blur-xl lg:w-auto">
                         <div className="flex-1 lg:flex-none">
                             <p className="text-xs text-[#bccbb9]">Sede seleccionada</p>
-                            <select className="w-full bg-transparent text-lg font-semibold text-[#4be176] focus:outline-none sm:text-xl">
-                                <option className="bg-[#1a221a]">Sede Norte (Principal)</option>
-                                <option className="bg-[#1a221a]">Sede Centro (Urbana)</option>
-                                <option className="bg-[#1a221a]">Sede Sur (Recreativa)</option>
+                            <select
+                                value={selectedVenue}
+                                onChange={(e) => handleVenueChange(e.target.value)}
+                                className="w-full bg-transparent text-lg font-semibold text-[#4be176] focus:outline-none sm:text-xl"
+                            >
+                                {venueOptions.map((option: VenueOption) => (
+                                    <option key={option.value} value={option.value} className="bg-[#1a221a]">
+                                        {option.label}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                         <div className="h-10 w-px bg-white/20" />
@@ -98,7 +277,7 @@ export default function DashboardPage() {
                             <div className="relative z-10 flex min-h-[280px] flex-col sm:min-h-[380px]">
                                 <div className="mb-auto flex items-start justify-between">
                                     <span className="rounded-full border border-[#4be176]/30 bg-[#4be176]/15 px-3 py-1 text-xs text-[#6bfe8f]">
-                                        Complejo activo: Sede Norte
+                                        Complejo activo: {getVenueLabel(selectedVenue)}
                                     </span>
                                     <div className="flex gap-2">
                                         <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-[#bccbb9] transition hover:bg-white/10">
@@ -111,17 +290,22 @@ export default function DashboardPage() {
                                 </div>
 
                                 <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-4">
-                                    {[
-                                        { label: "Canchas", value: "12", accent: "text-[#dce5d9]" },
-                                        { label: "Ocupacion", value: "84%", accent: "text-[#4be176]" },
-                                        { label: "Staff", value: "08", accent: "text-[#dce5d9]" },
-                                        { label: "Ingresos Hoy", value: "$1.2k", accent: "text-[#dce5d9]" },
-                                    ].map((item) => (
-                                        <article key={item.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                                            <p className="text-xs text-[#bccbb9]">{item.label}</p>
-                                            <p className={`text-xl font-bold sm:text-2xl ${item.accent}`}>{item.value}</p>
-                                        </article>
-                                    ))}
+                                    <article className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                                        <p className="text-xs text-[#bccbb9]">Canchas</p>
+                                        <p className="text-xl font-bold text-[#dce5d9] sm:text-2xl">12</p>
+                                    </article>
+                                    <article className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                                        <p className="text-xs text-[#bccbb9]">Ocupación</p>
+                                        <p className="text-xl font-bold text-[#4be176] sm:text-2xl">{kpis.occupancyRate}%</p>
+                                    </article>
+                                    <article className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                                        <p className="text-xs text-[#bccbb9]">Staff</p>
+                                        <p className="text-xl font-bold text-[#dce5d9] sm:text-2xl">08</p>
+                                    </article>
+                                    <article className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                                        <p className="text-xs text-[#bccbb9]">Ingresos</p>
+                                        <p className="text-xl font-bold text-[#dce5d9] sm:text-2xl">{formatPrice(kpis.totalIncome)}</p>
+                                    </article>
                                 </div>
                             </div>
                         </div>
@@ -159,66 +343,238 @@ export default function DashboardPage() {
                         </div>
                     </section>
 
-                    {/* Field management */}
+                    {/* Field management - BOOKINGS REALES */}
                     <section className="lg:col-span-12">
                         <div className="mb-4 flex items-center justify-between gap-3">
-                            <h2 className="text-lg font-semibold sm:text-xl lg:text-2xl xl:text-3xl">Gestion de Canchas: Sede Norte</h2>
-                            <div className="flex shrink-0 items-center gap-2">
-                                <button className="rounded-lg border border-white/10 bg-[#1a221a]/70 p-2 text-[#bccbb9]">
-                                    <Filter className="h-4 w-4" />
+                            <div>
+                                <h2 className="text-lg font-semibold sm:text-xl lg:text-2xl xl:text-3xl">Reservas: {getVenueLabel(selectedVenue)}</h2>
+                                <p className="text-xs text-[#bccbb9]">Total: {analytics.totalReservations} reservas · {totalCount} totales</p>
+                            </div>
+                            <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                {/* Sort dropdown */}
+                                <select 
+                                    value={sortBy}
+                                    onChange={(e) => handleSortChange(e.target.value)}
+                                    className="rounded-lg border border-white/10 bg-[#1a221a]/70 px-3 py-2 text-sm text-[#dce5d9] focus:outline-none"
+                                >
+                                    <option value="recent">Más recientes</option>
+                                    <option value="oldest">Más antiguas</option>
+                                    <option value="highestPrice">Mayor monto</option>
+                                    <option value="lowestPrice">Menor monto</option>
+                                    <option value="status">Por estado</option>
+                                </select>
+
+                                {/* Status filter */}
+                                <select 
+                                    value={statusFilter}
+                                    onChange={(e) => handleStatusFilterChange(e.target.value)}
+                                    className="rounded-lg border border-white/10 bg-[#1a221a]/70 px-3 py-2 text-sm text-[#dce5d9] focus:outline-none"
+                                >
+                                    <option value="all">Todos</option>
+                                    <option value="pending">Pendientes</option>
+                                    <option value="confirmed">Confirmadas</option>
+                                    <option value="rejected">Rechazadas</option>
+                                    <option value="cancelled">Canceladas</option>
+                                </select>
+
+                                {/* Auto-refresh toggle */}
+                                <button
+                                    onClick={() => toggleAutoRefresh(!autoRefreshEnabled)}
+                                    className={`rounded-lg border p-2 transition ${
+                                        autoRefreshEnabled
+                                            ? "border-[#4be176]/40 bg-[#4be176]/10 text-[#4be176]"
+                                            : "border-white/10 bg-[#1a221a]/70 text-[#bccbb9]"
+                                    }`}
+                                    title={autoRefreshEnabled ? "Auto-refresh activo" : "Auto-refresh inactivo"}
+                                >
+                                    <RefreshCw className="h-4 w-4" />
                                 </button>
+
                                 <button className="rounded-lg border border-white/10 bg-[#1a221a]/70 p-2 text-[#bccbb9]">
                                     <Grid3x3 className="h-4 w-4" />
                                 </button>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                            {[
-                                { name: "Cancha 01", type: "Futbol 5 - Sintetico", status: "DISPONIBLE" as const, next: "18:00 - 19:00", action: "Gestionar Horarios", reserveNow: false },
-                                { name: "Cancha 02", type: "Futbol 5 - Sintetico", status: "RESERVADA" as const, next: "AHORA", action: "Ver Reserva", reserveNow: true },
-                                { name: "Cancha 03", type: "Futbol 7 - Sintetico", status: "DISPONIBLE" as const, next: "19:30 - 20:30", action: "Gestionar Horarios", reserveNow: false },
-                            ].map((field) => (
-                                <article key={field.name} className={`rounded-2xl border p-4 backdrop-blur-xl ${field.reserveNow ? "border-[#adc6ff]/70" : "border-[#4be176]/70"} bg-white/[0.03]`}>
-                                    <div className="mb-3 flex items-start justify-between">
-                                        <div>
-                                            <h3 className="text-xl font-semibold sm:text-2xl">{field.name}</h3>
-                                            <p className="text-xs text-[#bccbb9]">{field.type}</p>
+                        {/* Error state */}
+                        {error && (
+                            <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+                                {error}
+                            </div>
+                        )}
+
+                        {/* Success state */}
+                        {successMessage && (
+                            <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+                                {successMessage}
+                            </div>
+                        )}
+
+                        {/* Loading state */}
+                        {loading && (
+                            <div className="flex min-h-[400px] items-center justify-center">
+                                <div className="flex flex-col items-center gap-3">
+                                    <Loader2 className="h-8 w-8 animate-spin text-[#6bfe8f]" />
+                                    <p className="text-sm text-[#bccbb9]">Cargando reservas...</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Empty state */}
+                        {!loading && bookings.length === 0 && (
+                            <EmptyState
+                                title={
+                                    statusFilter === "all"
+                                        ? "No hay reservas para mostrar"
+                                        : `No hay reservas ${statusFilter}`
+                                }
+                                description={
+                                    statusFilter === "all"
+                                        ? "No se encontraron reservas con los filtros actuales. Intenta cambiar el rango de fechas o la sede."
+                                        : `No se encontraron reservas con estado ${statusFilter}.`
+                                }
+                            />
+                        )}
+
+                        {/* Bookings Grid */}
+                        {!loading && bookings.length > 0 && (
+                            <>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                                    {bookings.map((bookingItem: Booking) => {
+                                        const booking = bookingItem;
+                                        const transformed = transformBookingForUI(booking);
+                                        const isActionLoading = actionLoading === booking.id;
+                                        
+                                        return (
+                                            <article 
+                                                key={booking.id} 
+                                                className={`rounded-2xl border p-4 backdrop-blur-xl transition cursor-pointer hover:shadow-lg hover:shadow-[#4be176]/20 ${transformed.statusDisplay.borderColor} bg-white/[0.03]`}
+                                                onClick={() => openDetailModal(booking)}
+                                            >
+                                                <div className="mb-3 flex items-start justify-between">
+                                                    <div>
+                                                        <h3 className="text-lg font-semibold">{transformed.pitchName}</h3>
+                                                        <p className="text-xs text-[#bccbb9]">{transformed.userName}</p>
+                                                    </div>
+                                                    <PaymentStatusBadge 
+                                                        paymentStatus={booking.paymentStatus}
+                                                        variant="card"
+                                                    />
+                                                </div>
+
+                                                <div className={`mb-3 flex h-20 items-center justify-center rounded-xl border sm:h-24 ${transformed.statusDisplay.bgColor} ${transformed.statusDisplay.borderColor}`}>
+                                                    {transformed.statusDisplay.icon === "Users" ? (
+                                                        <Users className="h-8 w-8 text-[#adc6ff]/40 sm:h-9 sm:w-9" />
+                                                    ) : transformed.statusDisplay.icon === "Check" ? (
+                                                        <Check className="h-8 w-8 text-[#6bfe8f]/40 sm:h-9 sm:w-9" />
+                                                    ) : transformed.statusDisplay.icon === "X" ? (
+                                                        <X className="h-8 w-8 text-[#ff6b6b]/40 sm:h-9 sm:w-9" />
+                                                    ) : (
+                                                        <Landmark className="h-8 w-8 text-[#ffd05a]/40 sm:h-9 sm:w-9" />
+                                                    )}
+                                                </div>
+
+                                                <div className="mb-3 space-y-2 text-xs text-[#bccbb9]">
+                                                    <div className="flex items-center justify-between">
+                                                        <span>Fecha:</span>
+                                                        <span className="text-[#dce5d9]">{transformed.date}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span>Monto:</span>
+                                                        <span className="text-[#6bfe8f]">{transformed.totalPrice}</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Acciones según estado */}
+                                                <div className="space-y-2">
+                                                    {booking.status === "pending" && (
+                                                        <>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openActionModal(booking, "confirm");
+                                                                }}
+                                                                disabled={isActionLoading}
+                                                                className="w-full rounded-lg border border-[#6bfe8f]/40 bg-[#6bfe8f]/10 px-3 py-2 text-xs font-medium text-[#6bfe8f] transition hover:bg-[#6bfe8f]/20 disabled:opacity-50"
+                                                            >
+                                                                {isActionLoading ? "Procesando..." : "Confirmar"}
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openActionModal(booking, "reject");
+                                                                }}
+                                                                disabled={isActionLoading}
+                                                                className="w-full rounded-lg border border-[#ff6b6b]/40 bg-[#ff6b6b]/10 px-3 py-2 text-xs font-medium text-[#ff6b6b] transition hover:bg-[#ff6b6b]/20 disabled:opacity-50"
+                                                            >
+                                                                {isActionLoading ? "Procesando..." : "Rechazar"}
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {booking.status === "confirmed" && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleCancelBooking(booking.id);
+                                                            }}
+                                                            disabled={isActionLoading}
+                                                            className="w-full rounded-lg border border-white/10 bg-[#1a221a]/50 px-3 py-2 text-xs font-medium text-[#bccbb9] transition hover:bg-[#1a221a] disabled:opacity-50"
+                                                        >
+                                                            {isActionLoading ? "Procesando..." : "Cancelar"}
+                                                        </button>
+                                                    )}
+                                                    {["rejected", "cancelled"].includes(booking.status) && (
+                                                        <button disabled className="w-full rounded-lg border border-white/10 bg-[#1a221a]/50 px-3 py-2 text-xs font-medium text-[#9ab59d] cursor-not-allowed">
+                                                            Sin acciones
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </article>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Paginación */}
+                                {totalPages > 1 && (
+                                    <>
+                                        {/* Desktop / tablet */}
+                                        <div className="mt-6 hidden sm:block">
+                                            <Pagination
+                                                pageNumber={pageNumber}
+                                                totalPages={totalPages}
+                                                onPrev={handlePrevPage}
+                                                onNext={handleNextPage}
+                                            />
                                         </div>
-                                        <span className={`rounded-md px-2 py-1 text-[10px] font-bold ${field.reserveNow ? "bg-[#adc6ff]/15 text-[#adc6ff]" : "bg-[#4be176]/15 text-[#6bfe8f]"}`}>
-                                            {field.status}
-                                        </span>
-                                    </div>
 
-                                    <div className={`mb-3 flex h-20 items-center justify-center rounded-xl border sm:h-24 ${field.reserveNow ? "border-[#adc6ff]/25 bg-[#adc6ff]/10" : "border-[#4be176]/25 bg-[#4be176]/10"}`}>
-                                        {field.reserveNow ? <Users className="h-8 w-8 text-[#adc6ff]/40 sm:h-9 sm:w-9" /> : <Landmark className="h-8 w-8 text-[#4be176]/40 sm:h-9 sm:w-9" />}
-                                    </div>
-
-                                    <div className="mb-3 flex items-center justify-between text-xs text-[#bccbb9]">
-                                        <span>Prox. Reserva:</span>
-                                        <span className="text-[#dce5d9]">{field.next}</span>
-                                    </div>
-
-                                    <button 
-                                        onClick={() => {
-                                            setSelectedField(field);
-                                            setIsScheduleDrawerOpen(true);
-                                        }}
-                                        className="w-full rounded-lg border border-white/10 bg-[#2f372e]/50 px-3 py-2 text-sm transition hover:border-[#4be176]/60 hover:bg-[#4be176]/10">
-                                        {field.action}
-                                    </button>
-                                </article>
-                            ))}
-
-                            <button className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/20 bg-transparent text-center transition hover:border-[#4be176]/60 sm:min-h-[280px]">
-                                <span className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#1a221a]">
-                                    <Plus className="h-6 w-6 text-[#bccbb9]" />
-                                </span>
-                                <p className="text-xl font-semibold sm:text-2xl">Nueva Cancha</p>
-                                <p className="max-w-[220px] text-sm text-[#bccbb9]">Anadir un nuevo campo de juego a esta sede.</p>
-                            </button>
-                        </div>
+                                        {/* Mobile compact */}
+                                        <div className="mt-6 sm:hidden">
+                                            <Pagination
+                                                compact
+                                                pageNumber={pageNumber}
+                                                totalPages={totalPages}
+                                                onPrev={handlePrevPage}
+                                                onNext={handleNextPage}
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                            </>
+                        )}
                     </section>
+
+                    {/* NUEVA SECCIÓN: Actividad Reciente */}
+                    {recentActivity.length > 0 && (
+                        <section className="lg:col-span-12">
+                            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl sm:p-6">
+                                <div className="mb-6">
+                                    <h2 className="text-lg font-semibold sm:text-xl lg:text-2xl">Actividad Reciente</h2>
+                                    <p className="mt-1 text-xs text-[#bccbb9]">Últimos cambios en reservas</p>
+                                </div>
+                                <RecentActivityTimeline activities={recentActivity} />
+                            </div>
+                        </section>
+                    )}
 
                     {/* Insights */}
                     <section className="lg:col-span-12">
@@ -264,6 +620,36 @@ export default function DashboardPage() {
                     </section>
                 </div>
             </div>
+
+            {/* Modals */}
+            <BookingConfirmationModal
+                open={isActionModalOpen}
+                title={
+                    actionType === "confirm"
+                        ? "Confirmar reserva"
+                        : "Rechazar reserva"
+                }
+                message={
+                    activeBooking
+                        ? actionType === "confirm"
+                            ? `¿Estás seguro de que deseas confirmar la reserva de la cancha ${activeBooking.pitchName}?`
+                            : `¿Estás seguro de que deseas rechazar la reserva de la cancha ${activeBooking.pitchName}?`
+                        : "¿Estás seguro de que deseas continuar con esta acción?"
+                }
+                confirmLabel={
+                    actionType === "confirm" ? "Confirmar Reserva" : "Rechazar Reserva"
+                }
+                onClose={closeActionModal}
+                onConfirm={handleModalConfirmAction}
+                loading={modalLoading}
+                error={modalError}
+            />
+
+            <BookingDetailModal
+                booking={selectedBookingForDetail}
+                isOpen={isDetailModalOpen}
+                onClose={closeDetailModal}
+            />
 
             {/* Schedule Management Drawer */}
             <ScheduleManagementDrawer
