@@ -4,6 +4,7 @@ using Picadito.Application.Features.Bookings.Commands.ConfirmBooking;
 using Picadito.Application.Features.Bookings.Commands.RejectBooking;
 using Picadito.Application.Features.Bookings.Commands.CancelBooking;
 using Picadito.Application.Features.Bookings.Queries.GetBookings;
+using Picadito.Application.Features.Bookings.Queries.GetBookingById;
 using Picadito.Application.DTOs;
 using Picadito.Application.Common.Models;
 using ErrorOr;
@@ -20,6 +21,7 @@ public class BookingsController : ControllerBase
 {
     private readonly CreateBookingHandler _createBookingHandler;
     private readonly GetBookingsHandler _getBookingsHandler;
+    private readonly GetBookingByIdHandler _getBookingByIdHandler;
     private readonly ConfirmBookingHandler _confirmBookingHandler;
     private readonly RejectBookingHandler _rejectBookingHandler;
     private readonly CancelBookingHandler _cancelBookingHandler;
@@ -27,12 +29,14 @@ public class BookingsController : ControllerBase
     public BookingsController(
         CreateBookingHandler createBookingHandler,
         GetBookingsHandler getBookingsHandler,
+        GetBookingByIdHandler getBookingByIdHandler,
         ConfirmBookingHandler confirmBookingHandler,
         RejectBookingHandler rejectBookingHandler,
         CancelBookingHandler cancelBookingHandler)
     {
         _createBookingHandler = createBookingHandler;
         _getBookingsHandler = getBookingsHandler;
+        _getBookingByIdHandler = getBookingByIdHandler;
         _confirmBookingHandler = confirmBookingHandler;
         _rejectBookingHandler = rejectBookingHandler;
         _cancelBookingHandler = cancelBookingHandler;
@@ -182,13 +186,19 @@ public class BookingsController : ControllerBase
     /// Obtiene una reserva por su ID.
     /// </summary>
     /// <param name="id">ID de la reserva.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
     /// <returns>Reserva o error.</returns>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BookingDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetBookingById(Guid id)
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetBookingById(
+        Guid id,
+        CancellationToken cancellationToken)
     {
-        return Ok();
+        var query = new GetBookingByIdQuery { Id = id };
+        var result = await _getBookingByIdHandler.Handle(query, cancellationToken);
+        return result.Match(Ok, errors => Problem(errors));
     }
 
     /// <summary>

@@ -259,6 +259,7 @@ public class BookingRepository : IBookingRepository
         return await _context.Bookings
             .Include(b => b.Pitch)
                 .ThenInclude(p => p.Venue)
+            .Include(b => b.User)
             .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
     }
 
