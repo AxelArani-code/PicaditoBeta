@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
 
   // Redirigir usuarios autenticados que intentan acceder a auth pages
   if (isAuthenticated && AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/inicio", request.url));
   }
 
   // Proteger rutas del dashboard

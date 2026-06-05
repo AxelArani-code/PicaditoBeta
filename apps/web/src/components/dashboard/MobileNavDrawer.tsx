@@ -117,6 +117,14 @@ export function MobileNavDrawer({ profile }: Props) {
                         <Activity className="h-4 w-4 text-[#004a1d]" />
                         <span className="text-xs font-bold text-[#004a1d]">System Health</span>
                     </div>
+                    <Link
+                        href="/"
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#bccbb9] transition-all hover:bg-[#4be176]/10 hover:text-[#4be176]"
+                        onClick={() => setOpen(false)}
+                    >
+                        <Home className="h-4 w-4" />
+                        Volver a Inicio
+                    </Link>
                     <button
                         onClick={handleSignOut}
                         className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#bccbb9] transition-all hover:bg-[#ffb4ab]/10 hover:text-[#ffb4ab]"

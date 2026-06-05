@@ -7,14 +7,14 @@ import type { View } from '@/components/home/HomePageClient';
 import { ArrowRight, Lock, Mail } from 'lucide-react';
 import Image from 'next/image';
 import { Card } from '@/components/design-system/Card';
-import { clearAuthSession, saveAuthSession, type AuthSession } from "@/lib/auth/session";
+import { saveAuthSession, type AuthSession } from "@/lib/auth/session";
 
 const REMEMBER_ME_KEY = "picadito.auth.remember_me";
 const REMEMBER_CREDENTIALS_KEY = "picadito.auth.remember_credentials";
 
 type RememberedCredentials = {
   email: string;
-  password: string;
+  password?: string;
 };
 
 interface LoginProps {
@@ -61,9 +61,10 @@ export default function LoginPage({ onNavigate }: LoginProps) {
         const parsed = JSON.parse(storedCredentials) as RememberedCredentials;
         if (parsed.email) {
           setEmail(parsed.email);
-        }
-        if (parsed.password) {
-          setPassword(parsed.password);
+          localStorage.setItem(
+            REMEMBER_CREDENTIALS_KEY,
+            JSON.stringify({ email: parsed.email })
+          );
         }
       } catch {
         localStorage.removeItem(REMEMBER_CREDENTIALS_KEY);
@@ -149,7 +150,6 @@ export default function LoginPage({ onNavigate }: LoginProps) {
             REMEMBER_CREDENTIALS_KEY,
             JSON.stringify({
               email: email.trim(),
-              password,
             })
           );
         } else {
@@ -157,7 +157,7 @@ export default function LoginPage({ onNavigate }: LoginProps) {
         }
 
         toast.success("Sesión iniciada correctamente");
-        router.push("/dashboard");
+        router.replace("/inicio");
         router.refresh();
       } catch {
         const connectionMessage = "No se pudo conectar con el servidor. Intentá nuevamente.";
