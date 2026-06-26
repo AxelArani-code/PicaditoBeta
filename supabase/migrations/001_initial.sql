@@ -525,7 +525,7 @@ AFTER INSERT ON public.venue_closures
 FOR EACH ROW
 EXECUTE FUNCTION on_venue_closure_inserted();
 
--- Trigger para actualizar turnos cuando cambian las reglas de disponibilidad
+-- Trigger para actualizar turnos al insertar o modificar reglas de disponibilidad
 
 CREATE OR REPLACE FUNCTION public.on_availability_rule_updated()
 RETURNS TRIGGER AS $$
@@ -533,12 +533,27 @@ DECLARE
     v_days_to_generate INT;
     v_end_date DATE;
 BEGIN
-    -- 1. Detección de cambios: solo ejecuta si cambiaron start_time, end_time o price_override
+    -- 1. Rama INSERT: generar turnos directamente (no hay valores viejos que comparar)
+    IF TG_OP = 'INSERT' THEN
+
+        SELECT COALESCE(
+            (SELECT value::INTEGER FROM public.system_settings WHERE key = 'cron_generation_days'),
+            15
+        ) INTO v_days_to_generate;
+
+        v_end_date := CURRENT_DATE + (v_days_to_generate || ' days')::INTERVAL;
+
+        PERFORM public.generate_time_slots_by_range(CURRENT_DATE, v_end_date, p_bypass_security => TRUE);
+
+        RETURN NEW;
+    END IF;
+
+    -- 2. Rama UPDATE: solo ejecuta si cambiaron start_time, end_time o price_override
     IF OLD.start_time IS DISTINCT FROM NEW.start_time
        OR OLD.end_time IS DISTINCT FROM NEW.end_time
        OR OLD.price_override IS DISTINCT FROM NEW.price_override THEN
 
-        -- 2. Actualizar turnos libres futuros que coincidan con la regla modificada
+        -- 2a. Actualizar turnos libres futuros que coincidan con la regla modificada
         UPDATE public.time_slots ts
         SET
             start_time = NEW.start_time,
@@ -552,7 +567,7 @@ BEGIN
           AND ts.start_time = OLD.start_time
           AND ts.status = 'available';
 
-        -- 3. Autogeneración de la malla (futuros 15 días por defecto)
+        -- 2b. Autogeneración de la malla (futuros 15 días por defecto)
         SELECT COALESCE(
             (SELECT value::INTEGER FROM public.system_settings WHERE key = 'cron_generation_days'),
             15
@@ -568,7 +583,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TRIGGER trigger_update_slots_on_rule_change
-AFTER UPDATE ON public.availability_rules
+AFTER INSERT OR UPDATE ON public.availability_rules
 FOR EACH ROW
 EXECUTE FUNCTION public.on_availability_rule_updated();
 
