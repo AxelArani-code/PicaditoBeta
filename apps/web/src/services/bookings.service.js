@@ -1,31 +1,8 @@
-import { buildAuthHeaders, getAccessToken } from "@/lib/auth/session";
+import { buildAuthHeaders } from "@/lib/auth/session";
 
-const BASE_URL = "http://localhost:5000/api/bookings";
 const PITCHES_BASE_URL = "/api/proxy/pitches";
 const VENUES_BASE_URL = "/api/proxy/venues";
-const BOOKINGS_PROXY_URL = "/api/proxy/bookings";
-
-const DEBUG_BEARER_TOKEN = "eyJhbGciOiJFUzI1NiIsImtpZCI6IjE0MmUwMzQ5LWViNTUtNDEyMy1iMDU4LWNkMGZiN2ZlNjZkNiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2h3c2lmeGlkbHhmem5xZXZ3am5tLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiIxZGIyYjk0Mi04YTdmLTQ4ODQtOTllZS1jZTg5YjE4ODFjMzYiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzc5NzIwODgzLCJpYXQiOjE3Nzk3MTcyODMsImVtYWlsIjoib3duZXJAcGljYWRpdG8uY29tLmFyIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbF92ZXJpZmllZCI6dHJ1ZX0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3Nzk3MTcyODN9XSwic2Vzc2lvbl9pZCI6ImVlYTVmMjZmLWY4YmEtNDE4OS1iN2E2LWI3MjY2M2JmOGRlZCIsImlzX2Fub255bW91cyI6ZmFsc2V9.MTkzV4dOxcq78qQA3L0e8W6jbhaxPPZ7UfRe1rMVAyxUYNhfeDMp41cPMK_a7-iglG1_zAeWPQMFoGmrR00MLQ";
-
-/**
- * Obtiene el token JWT del almacenamiento local o de la sesión de Supabase
- */
-const getTokenFromLocalStorage = () => {
-  if (typeof window === "undefined") return null;
-  return getAccessToken() || localStorage.getItem("access_token");
-};
-
-/**
- * Obtiene el token de autenticación. Si no hay token real, usa el token de debug
- */
-const getAuthToken = () => {
-  const token = getTokenFromLocalStorage();
-  if (token) {
-    return token;
-  }
-  console.warn("⚠️ bookings.service: usando token de debug temporal");
-  return DEBUG_BEARER_TOKEN;
-};
+const BOOKINGS_BASE_URL = "/api/proxy/bookings";
 
 /**
  * Construye la query string con filtros y paginación
@@ -44,21 +21,59 @@ const buildQueryString = (filters = {}) => {
   return queryString ? `?${queryString}` : "";
 };
 
-/**
- * Realiza un fetch con headers de autenticación estándar
- */
-const makeAuthenticatedRequest = async (url, options = {}) => {
-  const headers = buildAuthHeaders({ Accept: "*/*" });
+const parseJsonResponse = async (response) => {
+  const text = await response.text();
+  if (!text) return null;
 
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+};
+
+const buildUrl = (baseUrl, query = "") => {
+  if (typeof window === "undefined") {
+    return `${baseUrl}${query}`;
+  }
+
+  return new URL(`${baseUrl}${query}`, window.location.origin).toString();
+};
+
+const getErrorMessage = (data, response) => {
+  if (typeof data === "string" && data) return data;
+  if (data?.error) return data.error;
+  if (data?.message) return data.message;
+  return `Error ${response.status}: ${response.statusText}`;
+};
+
+/**
+ * Realiza requests autenticados y centraliza headers, errores y parseo.
+ */
+const requestJson = async (url, options = {}) => {
   const response = await fetch(url, {
     ...options,
     headers: {
-      ...headers,
+      ...buildAuthHeaders({ Accept: "*/*" }),
       ...options.headers,
     },
   });
 
-  return response;
+  const data = await parseJsonResponse(response);
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response));
+  }
+
+  return data ?? {};
+};
+
+const requestHealth = async () => {
+  const response = await fetch("/api/proxy/health", {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+
+  return response.ok;
 };
 
 /**
@@ -75,25 +90,16 @@ const makeAuthenticatedRequest = async (url, options = {}) => {
 export async function getBookings(filters = {}) {
   try {
     const query = buildQueryString(filters);
-    const url = `${BASE_URL}${query}`;
+    const url = buildUrl(BOOKINGS_BASE_URL, query);
 
     console.log("📋 bookings.service: getBookings()", {
       url,
       filters,
     });
 
-    const response = await makeAuthenticatedRequest(url, {
+    const data = await requestJson(url, {
       method: "GET",
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Error ${response.status}: ${response.statusText} - ${errorText}`
-      );
-    }
-
-    const data = await response.json();
 
     console.log("✅ bookings.service: getBookings() exitoso", {
       items: data.items?.length ?? 0,
@@ -116,51 +122,14 @@ export async function getBookings(filters = {}) {
  */
 export async function confirmBooking(bookingId) {
   try {
-    const url = `${BASE_URL}/${bookingId}/confirm`;
+    const url = buildUrl(`${BOOKINGS_BASE_URL}/${bookingId}/confirm`);
 
     console.log("📋 bookings.service: confirmBooking()", { bookingId, url });
 
-    const response = await makeAuthenticatedRequest(url, {
+    const data = await requestJson(url, {
       method: "PATCH",
       body: JSON.stringify({}),
     });
-
-    // Leer la respuesta como texto primero
-    const responseText = await response.text();
-    
-    console.log("📥 Response recibida:", {
-      status: response.status,
-      statusText: response.statusText,
-      body: responseText,
-    });
-
-    // Si no es ok, parsear error y lanzar
-    if (!response.ok) {
-      let errorData = null;
-      try {
-        errorData = responseText ? JSON.parse(responseText) : null;
-      } catch {
-        errorData = { raw: responseText };
-      }
-      
-      console.error("❌ bookings.service: error en confirmBooking:", {
-        status: response.status,
-        statusText: response.statusText,
-        errorData,
-      });
-      
-      throw new Error(
-        `Error ${response.status}: ${response.statusText} - ${responseText}`
-      );
-    }
-
-    // Si es ok, parsear JSON de la respuesta
-    let data = null;
-    try {
-      data = responseText ? JSON.parse(responseText) : {};
-    } catch {
-      data = { raw: responseText };
-    }
 
     console.log("✅ bookings.service: confirmBooking() exitoso", {
       bookingId,
@@ -182,51 +151,14 @@ export async function confirmBooking(bookingId) {
  */
 export async function rejectBooking(bookingId) {
   try {
-    const url = `${BASE_URL}/${bookingId}/reject`;
+    const url = buildUrl(`${BOOKINGS_BASE_URL}/${bookingId}/reject`);
 
     console.log("📋 bookings.service: rejectBooking()", { bookingId, url });
 
-    const response = await makeAuthenticatedRequest(url, {
+    const data = await requestJson(url, {
       method: "PATCH",
       body: JSON.stringify({}),
     });
-
-    // Leer la respuesta como texto primero
-    const responseText = await response.text();
-    
-    console.log("📥 Response recibida:", {
-      status: response.status,
-      statusText: response.statusText,
-      body: responseText,
-    });
-
-    // Si no es ok, parsear error y lanzar
-    if (!response.ok) {
-      let errorData = null;
-      try {
-        errorData = responseText ? JSON.parse(responseText) : null;
-      } catch {
-        errorData = { raw: responseText };
-      }
-      
-      console.error("❌ bookings.service: error en rejectBooking:", {
-        status: response.status,
-        statusText: response.statusText,
-        errorData,
-      });
-      
-      throw new Error(
-        `Error ${response.status}: ${response.statusText} - ${responseText}`
-      );
-    }
-
-    // Si es ok, parsear JSON de la respuesta
-    let data = null;
-    try {
-      data = responseText ? JSON.parse(responseText) : {};
-    } catch {
-      data = { raw: responseText };
-    }
 
     console.log("✅ bookings.service: rejectBooking() exitoso", {
       bookingId,
@@ -248,51 +180,14 @@ export async function rejectBooking(bookingId) {
  */
 export async function cancelBooking(bookingId) {
   try {
-    const url = `${BASE_URL}/${bookingId}/cancel`;
+    const url = buildUrl(`${BOOKINGS_BASE_URL}/${bookingId}/cancel`);
 
     console.log("📋 bookings.service: cancelBooking()", { bookingId, url });
 
-    const response = await makeAuthenticatedRequest(url, {
+    const data = await requestJson(url, {
       method: "PATCH",
       body: JSON.stringify({}),
     });
-
-    // Leer la respuesta como texto primero
-    const responseText = await response.text();
-    
-    console.log("📥 Response recibida:", {
-      status: response.status,
-      statusText: response.statusText,
-      body: responseText,
-    });
-
-    // Si no es ok, parsear error y lanzar
-    if (!response.ok) {
-      let errorData = null;
-      try {
-        errorData = responseText ? JSON.parse(responseText) : null;
-      } catch {
-        errorData = { raw: responseText };
-      }
-      
-      console.error("❌ bookings.service: error en cancelBooking:", {
-        status: response.status,
-        statusText: response.statusText,
-        errorData,
-      });
-      
-      throw new Error(
-        `Error ${response.status}: ${response.statusText} - ${responseText}`
-      );
-    }
-
-    // Si es ok, parsear JSON de la respuesta
-    let data = null;
-    try {
-      data = responseText ? JSON.parse(responseText) : {};
-    } catch {
-      data = { raw: responseText };
-    }
 
     console.log("✅ bookings.service: cancelBooking() exitoso", {
       bookingId,
@@ -319,30 +214,11 @@ export async function cancelBooking(bookingId) {
  */
 export async function createBooking(payload = {}) {
   try {
-    const response = await makeAuthenticatedRequest(BOOKINGS_PROXY_URL, {
+    const data = await requestJson(buildUrl(BOOKINGS_BASE_URL), {
       method: "POST",
       body: JSON.stringify(payload),
     });
 
-    const responseText = await response.text();
-    if (!response.ok) {
-      let errorData = null;
-      try {
-        errorData = responseText ? JSON.parse(responseText) : null;
-      } catch {
-        errorData = { raw: responseText };
-      }
-      console.error("❌ bookings.service: error en createBooking:", {
-        status: response.status,
-        statusText: response.statusText,
-        errorData,
-      });
-      throw new Error(
-        `Error ${response.status}: ${response.statusText} - ${responseText}`
-      );
-    }
-
-    const data = responseText ? JSON.parse(responseText) : {};
     console.log("✅ bookings.service: createBooking() exitoso", { booking: data });
     return data;
   } catch (error) {
@@ -358,18 +234,9 @@ export async function getPitches() {
   try {
     console.log("📋 bookings.service: getPitches()");
 
-    const response = await makeAuthenticatedRequest(PITCHES_BASE_URL, {
+    const data = await requestJson(buildUrl(PITCHES_BASE_URL), {
       method: "GET",
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Error ${response.status}: ${response.statusText} - ${errorText}`
-      );
-    }
-
-    const data = await response.json();
 
     console.log("✅ bookings.service: getPitches() exitoso", {
       items: data.items?.length ?? 0,
@@ -389,18 +256,9 @@ export async function getVenues() {
   try {
     console.log("📋 bookings.service: getVenues()");
 
-    const response = await makeAuthenticatedRequest(VENUES_BASE_URL, {
+    const data = await requestJson(buildUrl(VENUES_BASE_URL), {
       method: "GET",
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Error ${response.status}: ${response.statusText} - ${errorText}`
-      );
-    }
-
-    const data = await response.json();
 
     console.log("✅ bookings.service: getVenues() exitoso", {
       items: data.items?.length ?? 0,
@@ -420,17 +278,9 @@ export async function testBackendConnection() {
   try {
     console.log("🧪 bookings.service: testBackendConnection()");
 
-    const response = await fetch("/api/proxy/health", {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-      },
-    });
-
-    const isHealthy = response.ok;
+    const isHealthy = await requestHealth();
 
     console.log(isHealthy ? "✅" : "❌", "bookings.service: backend healthcheck", {
-      status: response.status,
       healthy: isHealthy,
     });
 

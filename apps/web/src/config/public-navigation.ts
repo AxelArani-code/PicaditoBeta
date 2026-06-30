@@ -4,10 +4,10 @@ export type PublicNavItem = {
 };
 
 export const publicNavItems: PublicNavItem[] = [
-  { label: "Inicio", href: "/#inicio" },
-  { label: "Reserva", href: "/reservar" },
-  { label: "Partido", href: "/partido" },
-  { label: "Equipo", href: "/equipo" },
-  { label: "Rating", href: "/rating" },
-  { label: "Perfil", href: "/perfil" },
+  { label: "Inicio", href: "/" },
+  { label: "Beneficios", href: "/benefits" },
+  { label: "Funciona", href: "/funcionamiento" },
+  { label: "Canchas", href: "/canchas" },
+  { label: "Nosotros", href: "/nosotros" },
+  { label: "Contacto", href: "/contact" },
 ];

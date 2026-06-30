@@ -1,150 +1,205 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { BookingStatusBadge } from "@/components/bookings/BookingStatusBadge";
-import { BookingActions } from "@/components/bookings/BookingActions";
-import { CalendarCheck, Clock, Search } from "lucide-react";
+"use client";
 
-export default async function ReservasPage() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect("/login");
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { useDashboardBookings } from "@/hooks/useDashboardBookings";
+import { getBookingStatusDisplay, getPaymentStatusDisplay, formatPrice } from "@/services/bookings.service";
+import { LoadingSpinner } from "@/components/dashboard/LoadingSpinner";
+import { ErrorBanner } from "@/components/dashboard/ErrorBanner";
 
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-    const isOwner = profile?.role === "venue_owner" || profile?.role === "admin";
+const STATUS_OPTIONS = [
+  { value: "", label: "Todos" },
+  { value: "pending", label: "Pendiente" },
+  { value: "confirmed", label: "Confirmado" },
+  { value: "rejected", label: "Rechazado" },
+  { value: "cancelled", label: "Cancelado" },
+];
 
-    // Build the query depending on role
-    // Since we denormalized date, we can sort easily
-    let query = supabase
-        .from("bookings")
-        .select(`
-            id,
-            status,
-            total_price,
-            date,
-            user_id,
-            time_slots ( start_time, end_time ),
-            pitches ( id, name, type, venues ( id, name, city, owner_id ) ),
-            profiles!bookings_user_id_fkey ( username, full_name, avatar_url )
-        `)
-        .is("deleted_at", null)
-        .order("date", { ascending: false });
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
-    if (!isOwner) {
-        query = query.eq("user_id", user.id);
-    }
+function StatusPill({ status }: { status: string }) {
+  const display = getBookingStatusDisplay(status);
+  return (
+    <span className={`inline-flex h-5 items-center rounded-full border px-2 text-[10px] font-bold ${display.borderColor} ${display.bgColor} ${display.color}`}>
+      {display.label}
+    </span>
+  );
+}
 
-    const { data: rawBookings } = await query;
+function PaymentPill({ status }: { status: string }) {
+  const display = getPaymentStatusDisplay(status);
+  return (
+    <span className={`inline-flex h-5 items-center rounded-full border px-2 text-[10px] font-bold ${display.borderColor} ${display.bgColor} ${display.color}`}>
+      {display.label}
+    </span>
+  );
+}
 
-    // Filter local for owner (RLS handles it anyway, but just in case of admin)
-    const bookings = isOwner
-        ? (rawBookings ?? []).filter((b: any) => b.pitches?.venues?.owner_id === user.id || profile?.role === "admin")
-        : (rawBookings ?? []);
+// Mobile card view for each booking
+function BookingCard({ booking }: { booking: any }) {
+  const date = new Date(booking.date || booking.createdAt);
+  const timeStr = !isNaN(date.getTime())
+    ? date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+    : "—";
+  const dateStr = !isNaN(date.getTime())
+    ? date.toLocaleDateString("es-AR", { day: "2-digit", month: "short" })
+    : "—";
 
-    return (
-        <div className="animate-fade-in space-y-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight">
-                        {isOwner ? "Panel de Reservas" : "Mis Reservas"}
-                    </h1>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        {bookings.length} {bookings.length === 1 ? 'reserva' : 'reservas'} en total
-                    </p>
-                </div>
-                {!isOwner && (
-                    <Link href="/canchas"
-                        className="flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95">
-                        <CalendarCheck className="h-4 w-4" /> Nueva reserva
-                    </Link>
-                )}
+  return (
+    <div className="rounded-xl border border-[#1d3b52] bg-[#102a40]/90 p-4">
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-bold text-white">{booking.userName || "—"}</p>
+          <p className="text-[11px] text-[#7890a3]">{booking.pitchName || "—"}</p>
+        </div>
+        <StatusPill status={booking.status} />
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#9fb3c5]">
+        <span>{dateStr} · {timeStr}</span>
+        <span>{formatPrice(booking.totalPrice)}</span>
+        <PaymentPill status={booking.paymentStatus} />
+      </div>
+    </div>
+  );
+}
+
+// Desktop table row
+function BookingRow({ booking }: { booking: any }) {
+  const date = new Date(booking.date || booking.createdAt);
+  const timeStr = !isNaN(date.getTime())
+    ? date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+    : "—";
+  const dateStr = !isNaN(date.getTime())
+    ? date.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
+    : "—";
+
+  return (
+    <tr className="border-t border-[#1d3b52] transition hover:bg-[#0c1f2e]/50">
+      <td className="px-4 py-3 text-sm font-semibold text-white">{booking.userName || "—"}</td>
+      <td className="px-4 py-3 text-[13px] text-[#9fb3c5]">{booking.pitchName || "—"}</td>
+      <td className="px-4 py-3 text-[13px] text-[#9fb3c5]">{dateStr}</td>
+      <td className="px-4 py-3 text-[13px] text-[#9fb3c5]">{timeStr}</td>
+      <td className="px-4 py-3 text-[13px] font-bold text-white">{formatPrice(booking.totalPrice)}</td>
+      <td className="px-4 py-3"><StatusPill status={booking.status} /></td>
+      <td className="px-4 py-3"><PaymentPill status={booking.paymentStatus} /></td>
+      <td className="px-4 py-3 text-right">
+        <button className="inline-flex h-7 items-center gap-1 rounded-full border border-[#1d3b52] px-2.5 text-[11px] font-bold text-[#9fb3c5] transition hover:border-[#2d5a73] hover:text-white">
+          <Eye className="h-3.5 w-3.5" />
+          Ver
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function TurnosPage() {
+  const [statusFilter, setStatusFilter] = useState("");
+  const { bookings, totalCount, totalPages, loading, error, filters, setFilters, refetch } =
+    useDashboardBookings({ status: statusFilter });
+
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+    setFilters((f: any) => ({ ...f, status: value || undefined, pageNumber: 1 }));
+  };
+
+  const handlePage = (delta: number) => {
+    setFilters((f: any) => ({ ...f, pageNumber: Math.max(1, (f.pageNumber ?? 1) + delta) }));
+  };
+
+  return (
+    <div className="min-h-full bg-[#07111d] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto max-w-6xl">
+        {/* Header */}
+        <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">Turnos</h1>
+            <p className="mt-1 text-sm text-[#9fb3c5] sm:mt-2">
+              {loading ? "Cargando..." : `${totalCount} reservas en total`}
+            </p>
+          </div>
+
+          {/* Status filter */}
+          <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
+            {STATUS_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => handleStatusChange(opt.value)}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-bold transition ${
+                  statusFilter === opt.value
+                    ? "border-[#4be176] bg-[#4be176]/15 text-[#4be176]"
+                    : "border-[#1d3b52] text-[#7890a3] hover:border-[#2d5a73] hover:text-white"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {loading ? (
+          <LoadingSpinner message="Cargando turnos..." />
+        ) : error ? (
+          <ErrorBanner message={error} onRetry={refetch} />
+        ) : bookings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-sm text-[#4a6a82]">No hay turnos para los filtros seleccionados.</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile: cards */}
+            <div className="space-y-3 sm:hidden">
+              {bookings.map((b: any) => <BookingCard key={b.id} booking={b} />)}
             </div>
 
-            {!bookings.length ? (
-                <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/60 bg-muted/10 py-24 text-center">
-                    <div className="rounded-full bg-muted/50 p-4 mb-4">
-                        <Clock className="h-10 w-10 text-muted-foreground/70" />
-                    </div>
-                    <h2 className="text-xl font-bold">Sin reservas aún</h2>
-                    <p className="text-muted-foreground max-w-sm mt-2">
-                        {isOwner ? "Todavía no tienes reservas en tus complejos. ¡Comparte el enlace de tu cancha!" : "Aún no has hecho ninguna reserva. ¡Busca una cancha y empieza a jugar!"}
-                    </p>
+            {/* Tablet/Desktop: table */}
+            <div className="hidden sm:block overflow-hidden rounded-xl border border-[#1d3b52] bg-[#102a40]/90">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-[#1d3b52] bg-[#071521]/50">
+                      {["Cliente", "Cancha", "Fecha", "Hora", "Total", "Estado", "Pago", ""].map((h) => (
+                        <th key={h} className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-[#4a6a82]">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bookings.map((b: any) => <BookingRow key={b.id} booking={b} />)}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-5 flex items-center justify-between text-[13px] text-[#7890a3]">
+                <span>Página {filters.pageNumber} de {totalPages}</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handlePage(-1)}
+                    disabled={(filters.pageNumber ?? 1) <= 1}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-[#1d3b52] transition hover:border-[#2d5a73] disabled:opacity-30"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handlePage(1)}
+                    disabled={(filters.pageNumber ?? 1) >= totalPages}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-[#1d3b52] transition hover:border-[#2d5a73] disabled:opacity-30"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
                 </div>
-            ) : (
-                <div className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-muted-foreground uppercase bg-muted/30 border-b">
-                                <tr>
-                                    <th className="px-6 py-4 font-semibold">Detalle Cancha</th>
-                                    <th className="px-6 py-4 font-semibold">Fecha y Hora</th>
-                                    {isOwner && <th className="px-6 py-4 font-semibold">Cliente</th>}
-                                    <th className="px-6 py-4 font-semibold">Precio</th>
-                                    <th className="px-6 py-4 font-semibold">Estado</th>
-                                    {isOwner && <th className="px-6 py-4 font-semibold text-right">Acciones</th>}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border/50">
-                                {bookings.map((booking: any) => (
-                                    <tr key={booking.id} className="hover:bg-muted/10 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="font-bold text-base">{booking.pitches?.name}</div>
-                                            <div className="text-xs text-muted-foreground mt-0.5">
-                                                {booking.pitches?.venues?.name}
-                                                {booking.pitches?.venues?.city && ` · ${booking.pitches.venues.city}`}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-2 font-medium">
-                                                <CalendarCheck className="h-4 w-4 text-primary" />
-                                                {new Date(booking.date).toLocaleDateString("es-AR", { day: '2-digit', month: 'short' })}
-                                            </div>
-                                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                                <Clock className="h-3.5 w-3.5" />
-                                                {booking.time_slots?.start_time?.substring(0, 5)} - {booking.time_slots?.end_time?.substring(0, 5)}
-                                            </div>
-                                        </td>
-                                        {isOwner && (
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs uppercase">
-                                                        {(booking.profiles?.full_name || booking.profiles?.username || "?")[0]}
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-medium text-sm leading-none">
-                                                            {booking.profiles?.full_name || booking.profiles?.username || "Usuario"}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        )}
-                                        <td className="px-6 py-4 font-semibold text-primary">
-                                            ${Number(booking.total_price).toLocaleString("es-AR")}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <BookingStatusBadge status={booking.status} />
-                                        </td>
-                                        {isOwner && (
-                                            <td className="px-6 py-4 text-right">
-                                                {booking.status === "pending" ? (
-                                                    <BookingActions bookingId={booking.id} />
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground italic">No requiere acción</span>
-                                                )}
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+              </div>
             )}
-        </div>
-    );
+          </>
+        )}
+      </div>
+    </div>
+  );
 }

@@ -1,18 +1,44 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { Shield, Trophy, UserPlus } from "lucide-react";
+import { PublicFeaturePage } from "@/components/shared/PublicFeaturePage/PublicFeaturePage";
 
 export default function EquipoPage() {
   return (
-    <div className="min-h-screen bg-background text-text-primary">
+    <div className="min-h-screen bg-gray-950">
       <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-28 sm:px-6">
-        <section className="rounded-[2rem] border border-white/10 bg-[#08110a]/90 p-10 shadow-[0_25px_80px_-50px_rgba(0,255,147,0.25)]">
-          <h1 className="text-4xl font-black text-white sm:text-5xl">Tu equipo</h1>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
-            Gestioná los datos del equipo, miembros y los próximos partidos desde un solo lugar.
-          </p>
-        </section>
-      </main>
+      <PublicFeaturePage
+        eyebrow="Equipo"
+        title="Gestiona tu equipo"
+        highlight="en una vista"
+        description="Reuni jugadores, roles, historial y proximos partidos para que el grupo funcione sin mensajes perdidos."
+        imageSrc="https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&q=80"
+        imageAlt="Equipo de futbol reunido antes de jugar"
+        ctaLabel="Crear equipo"
+        ctaHref="/register?role=player"
+        steps={[
+          {
+            title: "Suma miembros",
+            description: "Invita jugadores y mantene una lista clara de titulares, suplentes y contactos.",
+            icon: UserPlus,
+          },
+          {
+            title: "Mira el rendimiento",
+            description: "Segui partidos, resultados y participacion para entender como viene el equipo.",
+            icon: Trophy,
+          },
+          {
+            title: "Ordena roles",
+            description: "Define capitanes, administradores y permisos para que todos sepan que hacer.",
+            icon: Shield,
+          },
+        ]}
+        highlights={[
+          { label: "Plantel", value: "Activo" },
+          { label: "Proximos partidos", value: "Ordenados" },
+          { label: "Roles", value: "Claros" },
+        ]}
+      />
       <Footer />
     </div>
   );

@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const AUTH_ROUTES   = ["/login", "/register"];
+const AUTH_ROUTES      = ["/login", "/register"];
 const DASHBOARD_PREFIX = "/dashboard";
+const PROTECTED_PREFIX = ["/inicio"]; // rutas que requieren autenticación
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -18,8 +19,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Proteger rutas públicas que requieren sesión activa (inicio, canchas, turnos)
+  if (PROTECTED_PREFIX.some((p) => pathname.startsWith(p)) && !isAuthenticated) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   return NextResponse.next();
 }
+
 
 export const config = {
   matcher: [

@@ -1,26 +1,25 @@
 "use client";
 
 import { Navbar } from '@/components/layout/Navbar';
-import { AnimatePresence, motion } from "framer-motion";
-import { BarChart3, Calendar, CheckCircle2, Trophy, TrendingUp, Users } from "lucide-react";
+import { BarChart3, Calendar, Trophy, Users } from "lucide-react";
 import { useState } from "react";
 import { CTA } from '@/components/home/CTA/CTA';
 import { BenefitsShowcaseSection } from '@/components/shared/BenefitsShowcaseSection/BenefitsShowcaseSection';
 import { Footer } from '@/components/layout/Footer';
 
 export default function Benefits() {
-    const [activeTab, setActiveTab] = useState<'owners' | 'players'>('owners');
+    const [activeTab] = useState<'owners' | 'players'>('owners');
 
 
     return (
-        <div className="overflow-x-clip bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div  className="overflow-x-clip bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
             <main className="min-h-screen pt-24 pb-20 sm:pt-28 sm:pb-24 md:pt-32 md:pb-32">
                 <Navbar />
                 {/* Hero Section Headings */}
-                <header className="mx-auto mb-12 max-w-4xl text-center sm:mb-16">
+                <header id="benefits" className="mx-auto mb-12 max-w-4xl text-center sm:mb-16 scroll-mt-32">
                     <div className="mb-6 flex items-center space-x-3">
                         <div className="h-px w-8 bg-[#22c55e]/50"></div>
-                        <span className="text-[#22c55e] font-bold text-xs tracking-[0.2em] uppercase">Ecosistema</span>
+                        <span className="text-[#22c55e] font-bold text-xs tracking-[0.2em] uppercase">Beneficios</span>
                     </div>
                     <h1 className="mb-6 text-4xl font-black leading-[1.05] tracking-tight text-white sm:mb-8 sm:text-5xl md:text-6xl lg:text-7xl">
                         Beneficios que realmente <span className="text-[#22c55e]">importan</span>
@@ -32,6 +31,7 @@ export default function Benefits() {
                 </header>
 
                 <BenefitsShowcaseSection
+                
                     badge="Para Jugadores"
                     heading="La Experiencia de Juego Definitiva"
                     supportingText="Todo lo que necesitas para encontrar, reservar y dominar en el campo, todo en la palma de tu mano."

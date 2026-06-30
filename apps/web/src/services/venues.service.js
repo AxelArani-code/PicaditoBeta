@@ -41,12 +41,44 @@ export async function getVenues({ search, pitchType, surface, amenities, minPric
   if (pageNumber != null) url.searchParams.set("pageNumber", String(pageNumber));
   if (pageSize != null) url.searchParams.set("pageSize", String(pageSize));
 
-  return safeFetch(url.toString(), { method: "GET" });
+  const finalUrl = url.toString();
+
+  console.log("🏟️ venues.service: getVenues()", {
+    url: finalUrl,
+    filters: { search, pitchType, surface, amenities, minPrice, maxPrice, sortBy, pageNumber, pageSize },
+  });
+
+  try {
+    const data = await safeFetch(finalUrl, { method: "GET" });
+
+    console.log("✅ venues.service: getVenues() exitoso", {
+      total: Array.isArray(data) ? data.length : data?.totalCount ?? "—",
+    });
+
+    return data;
+  } catch (error) {
+    console.error("❌ venues.service: error en getVenues:", error);
+    throw error;
+  }
 }
 
 export async function getVenueById(id) {
   if (!id) throw new Error("Venue id is required");
-  return safeFetch(`${VENUES_PROXY_URL}/${id}`, { method: "GET" });
+
+  const url = `${VENUES_PROXY_URL}/${id}`;
+
+  console.log("🏟️ venues.service: getVenueById()", { url, id });
+
+  try {
+    const data = await safeFetch(url, { method: "GET" });
+
+    console.log("✅ venues.service: getVenueById() exitoso", { id, name: data?.name });
+
+    return data;
+  } catch (error) {
+    console.error("❌ venues.service: error en getVenueById:", error);
+    throw error;
+  }
 }
 
 export function normalizeVenue(venue) {

@@ -1,343 +1,145 @@
-import Image from "next/image";
-import {
-    BarChart3,
-    Bell,
-    CalendarDays,
-    CheckCircle2,
-    ChevronRight,
-    CircleMinus,
-    Eye,
-    Grid2X2,
-    HelpCircle,
-    LogOut,
-    Menu,
-    Plus,
-    Settings,
-    Shield,
-    Trophy,
-    Users,
-} from "lucide-react";
-import { Button } from "@/components/design-system";
+"use client";
 
-const standings = [
-    { pos: 1, team: "Fenix Dorado", pts: 22 },
-    { pos: 2, team: "Trueno FC", pts: 20 },
-    { pos: 3, team: "Los Galacticos FC", pts: 18, active: true },
-    { pos: 4, team: "Atletico Norte", pts: 17 },
-    { pos: 5, team: "Real Sportivo", pts: 15 },
-    { pos: 6, team: "Titan FC", pts: 12 },
+import { useState } from "react";
+import { BarChart3, CalendarDays, Grid2X2, Trophy, Users } from "lucide-react";
+import { PublicShell } from "@/app/inicio/_components/PublicShell";
+import { OverviewTab }      from "./_components/OverviewTab";
+import { EquiposTab }       from "./_components/EquiposTab";
+import { CalendarioTab }    from "./_components/CalendarioTab";
+import { EstadisticasTab }  from "./_components/EstadisticasTab";
+import { TorneosTab }       from "./_components/TorneosTab";
+
+// ── Tab config ────────────────────────────────────────────────────────────────
+
+type TabId = "overview" | "equipos" | "calendario" | "estadisticas" | "torneos";
+
+const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
+    { id: "overview",      label: "Overview",      icon: Grid2X2     },
+    { id: "equipos",       label: "Equipos",       icon: Users       },
+    { id: "calendario",    label: "Calendario",    icon: CalendarDays },
+    { id: "estadisticas",  label: "Estadisticas",  icon: BarChart3   },
+    { id: "torneos",       label: "Torneos",       icon: Trophy      },
 ];
 
-const stats = [
-    { label: "Posicion", value: "3°", meta: "+1" },
-    { label: "Puntos", value: "18" },
-    { label: "Jugados", value: "8", meta: "/ 14" },
-    { label: "Dif. gol", value: "+12" },
+// ── Quick-stat strip (always visible in hero) ─────────────────────────────────
+
+const HERO_STATS = [
+    { label: "Posicion",  value: "3°",  meta: "+1"    },
+    { label: "Puntos",    value: "18"               },
+    { label: "Jugados",   value: "8",   meta: "/ 14" },
+    { label: "Dif. gol",  value: "+12"              },
 ];
 
-const fixtures = [
-    { month: "MAR", day: "28", rival: "vs Real Sportivo", detail: "Cancha 4 - 20:00 hs" },
-    { month: "ABR", day: "04", rival: "vs Titan FC", detail: "Cancha Central - 22:30 hs" },
-];
-
-const results = [
-    { score: "3-1", title: "Victoria vs Leones", detail: "Fecha 7 - Visitante", status: "win" },
-    { score: "2-2", title: "Empate vs Inter", detail: "Fecha 6 - Local", status: "draw" },
-];
-
-const sideItems = [
-    { label: "Overview", icon: Grid2X2 },
-    { label: "Squad", icon: Users, active: true },
-    { label: "Schedule", icon: CalendarDays },
-    { label: "Analytics", icon: BarChart3 },
-    { label: "Facilities", icon: Trophy },
-];
-
-const topItems = ["Dashboard", "Tournaments", "Bookings", "Players"];
-
-function TeamMark({ muted = false }: { muted?: boolean }) {
-    return (
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#293428] shadow-inner sm:h-24 sm:w-24">
-            <Shield className={muted ? "h-10 w-10 text-[#b8caff]" : "h-11 w-11 text-[#47e878]"} strokeWidth={2.4} />
-        </div>
-    );
-}
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function TorneosPage() {
+    const [activeTab, setActiveTab] = useState<TabId>("overview");
+
     return (
-        <main className="min-h-screen bg-[#071009] text-[#edf5ea]">
-            <header className="sticky top-0 z-30 border-b border-white/10 bg-[#071009]/95 backdrop-blur">
-                <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:h-20">
-                    <div className="flex items-center gap-3">
-                        <button className="rounded-md border border-white/10 p-2 text-[#d8e3d3] lg:hidden" aria-label="Abrir menu">
-                            <Menu className="h-5 w-5" />
-                        </button>
-                        <span className="font-heading text-2xl font-extrabold text-[#47e878] sm:text-3xl">Elite Pitch</span>
-                    </div>
+        <PublicShell>
+            <div className="min-h-full bg-[#0a1118] text-[#dbe8ef]">
 
-                    <nav className="hidden items-center gap-8 text-base text-[#cbd6c7] md:flex lg:gap-10 lg:text-lg">
-                        {topItems.map((item) => (
-                            <a
-                                key={item}
-                                href="#"
-                                className={
-                                    item === "Tournaments"
-                                        ? "border-b-2 border-[#47e878] pb-2 font-bold text-[#47e878]"
-                                        : "pb-2 transition hover:text-white"
-                                }
-                            >
-                                {item}
-                            </a>
-                        ))}
-                    </nav>
+                {/* ── Hero Banner ───────────────────────────────────────── */}
+                <div className="relative overflow-hidden border-b border-[#1b3442] bg-[#071b28] px-4 py-8 sm:px-8 lg:px-14 lg:py-12">
+                    <div className="pointer-events-none absolute -top-24 left-1/3 h-72 w-72 rounded-full bg-[#1cff87]/10 blur-3xl" />
+                    <div className="pointer-events-none absolute -bottom-12 right-1/4 h-56 w-56 rounded-full bg-[#22d3ee]/8 blur-3xl" />
 
-                    <div className="flex items-center gap-2 sm:gap-4">
-                        <button className="hidden rounded-md p-2 text-[#d8e3d3] transition hover:bg-white/5 sm:inline-flex" aria-label="Notificaciones">
-                            <Bell className="h-5 w-5" />
-                        </button>
-                        <button className="hidden rounded-md p-2 text-[#d8e3d3] transition hover:bg-white/5 sm:inline-flex" aria-label="Configuracion">
-                            <Settings className="h-5 w-5" />
-                        </button>
-                        <div className="h-10 w-10 overflow-hidden rounded-full border border-[#47e878]/25 bg-[#142018]">
-                            <Image src="/logo-picadito.png" alt="Perfil" width={40} height={40} className="h-full w-full object-cover" />
+                    <div className="relative mx-auto max-w-5xl">
+                        <div className="mb-4 flex flex-wrap items-center gap-3">
+                            <span className="rounded-full bg-[#1cff87] px-4 py-1 text-xs font-black uppercase tracking-widest text-[#071b28]">
+                                En curso
+                            </span>
+                            <span className="text-sm text-[#70889a]">Liga Apertura 2025</span>
                         </div>
+
+                        <h1 className="font-heading text-4xl font-black leading-none text-white sm:text-5xl lg:text-6xl">
+                            Mis Torneos
+                        </h1>
+
+                        <div className="my-6 h-px bg-[#1b3442]" />
+
+                        <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
+                            {HERO_STATS.map((stat) => (
+                                <div key={stat.label} className="rounded-xl border border-[#1b3442] bg-[#0b2637]/60 p-4">
+                                    <dt className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#577080]">
+                                        {stat.label}
+                                    </dt>
+                                    <dd className="text-3xl font-black text-white">
+                                        {stat.value}
+                                        {stat.meta && (
+                                            <span className="ml-1.5 text-sm font-semibold text-[#1cff87]">
+                                                {stat.meta}
+                                            </span>
+                                        )}
+                                    </dd>
+                                </div>
+                            ))}
+                        </dl>
                     </div>
                 </div>
 
-                <nav className="flex gap-5 overflow-x-auto px-4 pb-3 text-sm text-[#cbd6c7] md:hidden">
-                    {topItems.map((item) => (
-                        <a key={item} href="#" className={item === "Tournaments" ? "font-bold text-[#47e878]" : ""}>
-                            {item}
-                        </a>
-                    ))}
-                </nav>
-            </header>
+                {/* ── Main content ──────────────────────────────────────── */}
+                <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8 lg:px-14">
 
-            <div className="mx-auto grid max-w-[1560px] lg:grid-cols-[304px_minmax(0,1fr)]">
-                <aside className="hidden min-h-[calc(100vh-80px)] border-r border-white/10 bg-[#142018] px-5 py-9 lg:flex lg:flex-col">
-                    <div className="mb-14 flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-md bg-[#071009] shadow-lg">
-                            <Shield className="h-7 w-7 text-[#47e878]" />
-                        </div>
-                        <div>
-                            <p className="font-heading text-2xl font-extrabold">Elite FC</p>
-                            <p className="text-xs font-semibold uppercase text-[#cbd6c7]">Pro management</p>
-                        </div>
-                    </div>
-
-                    <nav className="space-y-3">
-                        {sideItems.map(({ label, icon: Icon, active }) => (
-                            <a
-                                key={label}
-                                href="#"
-                                className={
-                                    active
-                                        ? "flex items-center gap-4 rounded-md border-r-4 border-[#47e878] bg-[#1f3b23] px-5 py-4 font-bold uppercase text-[#47e878]"
-                                        : "flex items-center gap-4 rounded-md px-5 py-4 font-bold uppercase text-[#d7e2d2] transition hover:bg-white/5"
-                                }
+                    {/* Tab bar */}
+                    <div className="mb-8 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Secciones de torneos">
+                        {TABS.map(({ id, label, icon: Icon }) => (
+                            <button
+                                key={id}
+                                role="tab"
+                                id={`tab-${id}`}
+                                aria-selected={activeTab === id}
+                                aria-controls={`panel-${id}`}
+                                onClick={() => setActiveTab(id)}
+                                className={`flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition-all ${
+                                    activeTab === id
+                                        ? "border-[#1cff87]/30 bg-[#0b2637] text-[#1cff87] shadow-sm shadow-[#1cff87]/10"
+                                        : "border-[#1b3442] bg-[#071b28] text-[#70889a] hover:border-[#2c5368] hover:text-[#dbe8ef]"
+                                }`}
                             >
-                                <Icon className="h-6 w-6" />
-                                <span className="text-sm">{label}</span>
-                            </a>
+                                <Icon className="h-4 w-4" strokeWidth={1.7} />
+                                <span>{label}</span>
+                            </button>
                         ))}
-                    </nav>
+                    </div>
 
-                    <div className="mt-auto space-y-8">
-                        <Button className="h-14 w-full gap-3 rounded-md bg-[#47e878] text-lg font-bold text-[#061009] hover:bg-[#62f18b]">
-                            <Plus className="h-6 w-6" />
-                            New Booking
-                        </Button>
-                        <div className="space-y-3">
-                            <a href="#" className="flex items-center gap-4 px-5 py-2 font-bold uppercase text-[#d7e2d2]">
-                                <HelpCircle className="h-6 w-6" />
-                                <span className="text-sm">Support</span>
-                            </a>
-                            <a href="#" className="flex items-center gap-4 px-5 py-2 font-bold uppercase text-[#d7e2d2]">
-                                <LogOut className="h-6 w-6" />
-                                <span className="text-sm">Logout</span>
-                            </a>
+                    {/* Tab panels */}
+                    <div
+                        id={`panel-${activeTab}`}
+                        role="tabpanel"
+                        aria-labelledby={`tab-${activeTab}`}
+                    >
+                        {activeTab === "overview"     && <OverviewTab />}
+                        {activeTab === "equipos"      && <EquiposTab />}
+                        {activeTab === "calendario"   && <CalendarioTab />}
+                        {activeTab === "estadisticas" && <EstadisticasTab />}
+                        {activeTab === "torneos"      && <TorneosTab />}
+                    </div>
+                </div>
+
+                {/* ── Footer ─────────────────────────────────────────────── */}
+                <footer className="mt-4 border-t border-[#1b3442] bg-[#071b28] px-8 py-8">
+                    <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 md:flex-row">
+                        <div className="flex flex-col items-center gap-1 md:items-start">
+                            <span className="text-sm font-black text-white">Picadito</span>
+                            <p className="text-xs uppercase tracking-widest text-[#1cff87]">
+                                © 2024 Picadito by TriaSoft. All rights reserved.
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-6">
+                            {["Privacy", "Terms", "Support"].map((link) => (
+                                <a
+                                    key={link}
+                                    href="#"
+                                    className="text-xs font-black uppercase tracking-wider text-[#1cff87] transition hover:text-[#22d3ee]"
+                                >
+                                    {link}
+                                </a>
+                            ))}
                         </div>
                     </div>
-                </aside>
-
-                <section className="bg-[radial-gradient(900px_520px_at_55%_20%,rgba(37,122,55,0.18),transparent_72%),#071009] px-4 py-6 sm:px-6 lg:px-14 lg:py-10">
-                    <div className="mx-auto max-w-[1120px] space-y-8">
-                        <section className="relative overflow-hidden rounded-xl border border-white/10 bg-[#101a12] px-6 py-8 shadow-2xl shadow-black/30 sm:px-10 lg:px-10">
-                            <Image src="/marketing-1.png" alt="" fill priority className="object-cover opacity-20" />
-                            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,16,9,0.95),rgba(7,16,9,0.76)),linear-gradient(180deg,transparent,rgba(7,16,9,0.82))]" />
-                            <div className="relative">
-                                <div className="mb-3 flex flex-wrap items-center gap-4">
-                                    <span className="rounded-full bg-[#47e878] px-4 py-2 text-xs font-extrabold uppercase text-[#061009]">En curso</span>
-                                    <span className="text-base text-[#dce6d8]">Liga Apertura 2025</span>
-                                </div>
-                                <h1 className="font-heading text-5xl font-extrabold leading-none sm:text-6xl lg:text-7xl">Mis Torneos</h1>
-                                <div className="my-7 h-px bg-white/10" />
-                                <dl className="grid max-w-md grid-cols-3 gap-5">
-                                    <div>
-                                        <dt className="mb-2 text-xs font-semibold uppercase text-[#cbd6c7]">Posicion</dt>
-                                        <dd className="text-3xl font-extrabold text-[#47e878]">3°</dd>
-                                    </div>
-                                    <div>
-                                        <dt className="mb-2 text-xs font-semibold uppercase text-[#cbd6c7]">Puntos</dt>
-                                        <dd className="text-3xl font-extrabold">18</dd>
-                                    </div>
-                                    <div>
-                                        <dt className="mb-2 text-xs font-semibold uppercase text-[#cbd6c7]">Progreso</dt>
-                                        <dd className="text-3xl font-extrabold">F8 <span className="text-base font-medium">de 14</span></dd>
-                                    </div>
-                                </dl>
-                            </div>
-                        </section>
-
-                        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_344px]">
-                            <div className="space-y-8">
-                                <section className="rounded-xl border-2 border-[#205d32] bg-[#101a12]/92 p-5 shadow-2xl shadow-black/20 sm:p-9">
-                                    <div className="mb-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                        <div className="flex items-center gap-3 text-sm font-extrabold uppercase text-[#47e878]">
-                                            <Trophy className="h-6 w-6" />
-                                            Proximo encuentro
-                                        </div>
-                                        <p className="text-[#edf5ea]">Viernes, 21:00 hs</p>
-                                    </div>
-
-                                    <div className="grid items-center gap-6 sm:grid-cols-[1fr_auto_1fr]">
-                                        <div className="text-center">
-                                            <div className="mx-auto mb-5 flex justify-center">
-                                                <TeamMark />
-                                            </div>
-                                            <h2 className="font-heading text-2xl font-extrabold">Los Galacticos FC</h2>
-                                            <p className="text-sm font-semibold uppercase text-[#dce6d8]">Local</p>
-                                        </div>
-
-                                        <div className="flex flex-col items-center gap-5">
-                                            <span className="font-heading text-6xl font-black text-[#2d382d]">VS</span>
-                                            <span className="rounded-full bg-[#3b493b] px-6 py-3 text-sm font-bold">Cancha Central</span>
-                                        </div>
-
-                                        <div className="text-center">
-                                            <div className="mx-auto mb-5 flex justify-center">
-                                                <TeamMark muted />
-                                            </div>
-                                            <h2 className="font-heading text-2xl font-extrabold">Atletico Norte</h2>
-                                            <p className="text-sm font-semibold uppercase text-[#dce6d8]">Visitante</p>
-                                        </div>
-                                    </div>
-
-                                    <Button className="mt-10 h-16 w-full gap-4 rounded-md bg-[#47e878] text-xl font-extrabold text-[#061009] shadow-lg shadow-[#47e878]/20 hover:bg-[#62f18b]">
-                                        <Eye className="h-6 w-6" />
-                                        Ver Partido
-                                    </Button>
-                                </section>
-
-                                <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                                    {stats.map((stat) => (
-                                        <article key={stat.label} className="rounded-xl border border-white/10 bg-[linear-gradient(90deg,rgba(255,255,255,0.035),rgba(71,232,120,0.04))] p-6">
-                                            <p className="mb-10 text-xs font-extrabold uppercase text-[#cbd6c7]">{stat.label}</p>
-                                            <p className="text-4xl font-black">
-                                                {stat.value}
-                                                {stat.meta && <span className="ml-2 text-sm font-semibold text-[#47e878]">{stat.meta}</span>}
-                                            </p>
-                                        </article>
-                                    ))}
-                                </section>
-
-                                <section className="grid gap-8 lg:grid-cols-2">
-                                    <div>
-                                        <h2 className="mb-5 font-heading text-2xl font-extrabold">Proximas Fechas</h2>
-                                        <div className="space-y-4">
-                                            {fixtures.map((fixture) => (
-                                                <article key={fixture.day} className="flex items-center gap-5 rounded-xl border border-white/10 bg-[linear-gradient(90deg,rgba(255,255,255,0.035),rgba(71,232,120,0.035))] p-4">
-                                                    <div className="border-r border-white/10 pr-4 text-center">
-                                                        <p className="text-xs font-bold text-[#cbd6c7]">{fixture.month}</p>
-                                                        <p className="text-2xl font-black">{fixture.day}</p>
-                                                    </div>
-                                                    <div className="min-w-0 flex-1">
-                                                        <h3 className="truncate text-xl font-extrabold">{fixture.rival}</h3>
-                                                        <p className="text-xs uppercase text-[#cbd6c7]">{fixture.detail}</p>
-                                                    </div>
-                                                    <ChevronRight className="h-5 w-5 text-[#384638]" />
-                                                </article>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <h2 className="mb-5 font-heading text-2xl font-extrabold">Resultados Recientes</h2>
-                                        <div className="space-y-4">
-                                            {results.map((result) => (
-                                                <article
-                                                    key={result.title}
-                                                    className={
-                                                        result.status === "win"
-                                                            ? "flex items-center gap-5 rounded-xl border-2 border-[#47e878] bg-white/[0.03] p-4"
-                                                            : "flex items-center gap-5 rounded-xl border border-[#dce6d8] bg-white/[0.03] p-4"
-                                                    }
-                                                >
-                                                    <span className="rounded-md bg-[#18351f] px-3 py-1 text-2xl font-black text-[#47e878]">{result.score}</span>
-                                                    <div className="min-w-0 flex-1">
-                                                        <h3 className="truncate text-xl font-extrabold">{result.title}</h3>
-                                                        <p className="text-xs uppercase text-[#cbd6c7]">{result.detail}</p>
-                                                    </div>
-                                                    {result.status === "win" ? (
-                                                        <CheckCircle2 className="h-7 w-7 text-[#47e878]" />
-                                                    ) : (
-                                                        <CircleMinus className="h-7 w-7 text-[#dce6d8]" />
-                                                    )}
-                                                </article>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </section>
-                            </div>
-
-                            <aside className="space-y-8">
-                                <section className="overflow-hidden rounded-xl border border-white/10 bg-[#172117] shadow-2xl shadow-black/20">
-                                    <h2 className="px-8 py-8 font-heading text-2xl font-extrabold">Tabla de Posiciones</h2>
-                                    <div className="border-y border-white/5 bg-[#0f190f] px-7 py-4">
-                                        <div className="grid grid-cols-[58px_1fr_42px] text-xs font-extrabold uppercase text-[#cbd6c7]">
-                                            <span>Pos</span>
-                                            <span>Equipo</span>
-                                            <span className="text-right">Pts</span>
-                                        </div>
-                                    </div>
-                                    <div className="py-4">
-                                        {standings.map((row) => (
-                                            <div
-                                                key={row.team}
-                                                className={
-                                                    row.active
-                                                        ? "mx-3 grid grid-cols-[58px_1fr_42px] items-center border border-[#1f7d3a] bg-[#14361c] px-4 py-4 font-extrabold text-[#47e878]"
-                                                        : "mx-3 grid grid-cols-[58px_1fr_42px] items-center px-4 py-4 font-bold text-[#edf5ea]"
-                                                }
-                                            >
-                                                <span>{row.pos}</span>
-                                                <span>{row.team}</span>
-                                                <span className="text-right">{row.pts}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <a href="#" className="block border-t border-white/5 bg-white/[0.02] px-8 py-7 text-center text-sm font-extrabold uppercase text-[#47e878]">
-                                        Ver tabla completa
-                                    </a>
-                                </section>
-
-                                <section className="rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(71,232,120,0.09),rgba(255,255,255,0.025))] p-8 shadow-2xl shadow-black/20">
-                                    <div className="mb-9 flex h-14 w-14 items-center justify-center rounded-lg bg-[#1e6730]">
-                                        <Trophy className="h-8 w-8 text-[#47e878]" />
-                                    </div>
-                                    <h2 className="font-heading text-3xl font-extrabold leading-tight">¿Queres organizar tu propio torneo?</h2>
-                                    <p className="mt-5 text-base leading-7 text-[#dce6d8]">
-                                        Gestiona equipos, fixture, tablas y estadisticas con la plataforma lider para administradores de predios.
-                                    </p>
-                                    <Button variant="secondary" className="mt-8 h-16 w-full rounded-md bg-[#e7efe4] text-base font-extrabold uppercase text-[#061009] hover:bg-white">
-                                        Crear torneo
-                                    </Button>
-                                </section>
-                            </aside>
-                        </div>
-                    </div>
-                </section>
+                </footer>
             </div>
-        </main>
+        </PublicShell>
     );
 }

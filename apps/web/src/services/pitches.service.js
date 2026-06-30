@@ -31,14 +31,30 @@ const safeFetch = async (url, options = {}) => {
 export async function getPitches({ venueId, search, pitchType, minPrice, maxPrice, sortBy } = {}) {
   const url = new URL(PITCHES_PROXY_URL, window.location.origin);
 
-  if (venueId) url.searchParams.set("venueId", venueId);
-  if (search) url.searchParams.set("search", search);
-  if (pitchType) url.searchParams.set("pitchType", pitchType);
+  if (venueId)        url.searchParams.set("venueId",   venueId);
+  if (search)         url.searchParams.set("search",    search);
+  if (pitchType)      url.searchParams.set("pitchType", pitchType);
   if (minPrice != null) url.searchParams.set("minPrice", String(minPrice));
   if (maxPrice != null) url.searchParams.set("maxPrice", String(maxPrice));
-  if (sortBy) url.searchParams.set("sortBy", sortBy);
+  if (sortBy)         url.searchParams.set("sortBy",    sortBy);
 
-  return safeFetch(url.toString(), { method: "GET" });
+  const finalUrl = url.toString();
+
+  console.log("⚽ pitches.service: getPitches()", {
+    url: finalUrl,
+    filters: { venueId, search, pitchType, minPrice, maxPrice, sortBy },
+  });
+
+  try {
+    const data = await safeFetch(finalUrl, { method: "GET" });
+
+    console.log("✅ pitches.service: getPitches() exitoso — JSON completo:", data);
+
+    return data;
+  } catch (error) {
+    console.error("❌ pitches.service: error en getPitches:", error);
+    throw error;
+  }
 }
 
 export async function getAvailability(pitchId, date) {

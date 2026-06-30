@@ -1,26 +1,37 @@
 "use client";
 
-import { confirmBooking, rejectBooking } from "@/lib/actions/bookings";
 import { CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useTransition } from "react";
+import {
+  confirmBooking,
+  rejectBooking,
+} from "@/services/bookings.service";
 
 export function BookingActions({ bookingId }: { bookingId: string }) {
     const [isPending, startTransition] = useTransition();
 
     const handleConfirm = () => {
         startTransition(async () => {
-            const result = await confirmBooking(bookingId);
-            if (result.error) toast.error(result.error as string);
-            else toast.success("Reserva confirmada. El partido fue creado automáticamente.");
+            try {
+                await confirmBooking(bookingId);
+                toast.success("Reserva confirmada. El partido fue creado automáticamente.");
+            } catch (err) {
+                const message = err instanceof Error ? err.message : "Error al confirmar la reserva";
+                toast.error(message);
+            }
         });
     };
 
     const handleReject = () => {
         startTransition(async () => {
-            const result = await rejectBooking(bookingId);
-            if (result.error) toast.error(result.error as string);
-            else toast.error("Reserva rechazada");
+            try {
+                await rejectBooking(bookingId);
+                toast.error("Reserva rechazada");
+            } catch (err) {
+                const message = err instanceof Error ? err.message : "Error al rechazar la reserva";
+                toast.error(message);
+            }
         });
     };
 

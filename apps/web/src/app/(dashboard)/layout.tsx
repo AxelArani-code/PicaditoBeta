@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
-import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { cookies } from "next/headers";
+import { DashboardShell } from "./DashboardShell";
+
+// ─── Layout (server) ──────────────────────────────────────────────────────────
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const cookieStore = await cookies();
@@ -9,15 +10,5 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
     if (!accessToken) redirect("/login");
 
-    return (
-        <div className="flex h-screen overflow-hidden bg-[#0e150e]">
-            <DashboardNav profile={null} />
-            <div className="flex flex-1 flex-col overflow-hidden">
-                <DashboardHeader profile={null} unreadCount={0} />
-                <main className="flex-1 overflow-y-auto">
-                    {children}
-                </main>
-            </div>
-        </div>
-    );
+    return <DashboardShell>{children}</DashboardShell>;
 }
