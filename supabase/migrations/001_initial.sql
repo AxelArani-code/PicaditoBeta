@@ -79,7 +79,7 @@ CREATE TABLE time_slots (
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     price NUMERIC(10,2) NOT NULL,
-    status slot_status DEFAULT 'available',
+    status TEXT NOT NULL CONSTRAINT check_time_slots_status CHECK (status IN ('available', 'booked', 'unavailable')),
     created_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE(pitch_id, date, start_time)
 );
@@ -92,13 +92,13 @@ CREATE TABLE bookings (
     pitch_id UUID NOT NULL REFERENCES pitches(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    status booking_status DEFAULT 'pending',
+    status TEXT NOT NULL CONSTRAINT check_bookings_status CHECK (status IN ('pending', 'confirmed', 'rejected', 'cancelled')),
     total_price NUMERIC(10,2) NOT NULL,
     payment_status TEXT DEFAULT 'pending',
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     deleted_at TIMESTAMPTZ
-);
+); 
 
 -- MATCHES
 -- (Added venue_id and date for denormalized indexing and performance)
@@ -107,7 +107,7 @@ CREATE TABLE matches (
     booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE UNIQUE,
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
     date DATE NOT NULL,
-    status match_status DEFAULT 'scheduled',
+    status TEXT NOT NULL CONSTRAINT check_matches_status CHECK (status IN ('scheduled', 'played', 'cancelled')),
     home_score INT DEFAULT 0,
     away_score INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -494,8 +494,10 @@ CREATE POLICY "Admins y Venue owners can manage rules" ON availability_rules FOR
 
 -- TIME SLOTS
 CREATE POLICY "Time slots viewable by everyone" ON time_slots FOR SELECT USING (true);
-CREATE POLICY "Venue owners can manage slots" ON time_slots FOR ALL USING (
-  EXISTS(
+CREATE POLICY "Admins and Venue owners can manage slots" ON time_slots FOR ALL TO authenticated 
+USING (
+  public.is_admin()
+  OR EXISTS (
     SELECT 1 FROM pitches p JOIN venues v ON p.venue_id = v.id 
     WHERE p.id = time_slots.pitch_id AND v.owner_id = auth.uid()
   )
@@ -561,11 +563,23 @@ WITH CHECK (
 
 -- MATCHES
 CREATE POLICY "Matches viewable by everyone" ON matches FOR SELECT USING (true);
-CREATE POLICY "Venue owners and match players can update match" ON matches FOR UPDATE USING (
-  EXISTS(
-    SELECT 1 FROM venues v WHERE v.id = matches.venue_id AND v.owner_id = auth.uid()
-  ) OR EXISTS (
-    SELECT 1 FROM match_players mp WHERE mp.match_id = matches.id AND mp.user_id = auth.uid()
+CREATE POLICY "Admins, Venue owners and players can update match" ON matches 
+FOR UPDATE 
+TO authenticated 
+USING (
+  -- Permiso 1: El usuario es Administrador (bypass total)
+  public.is_admin()
+  
+  -- Permiso 2: El usuario es el dueño del establecimiento (venue) donde se juega el partido
+  OR EXISTS (
+    SELECT 1 FROM venues v 
+    WHERE v.id = matches.venue_id AND v.owner_id = auth.uid()
+  ) 
+  
+  -- Permiso 3: El usuario es un jugador inscrito en este partido específico
+  OR EXISTS (
+    SELECT 1 FROM match_players mp 
+    WHERE mp.match_id = matches.id AND mp.user_id = auth.uid()
   )
 );
 
@@ -581,11 +595,19 @@ CREATE POLICY "Match players manageable by participant or owner" ON match_player
 
 -- TEAMS
 CREATE POLICY "Teams viewable by everyone if not deleted" ON teams FOR SELECT USING (deleted_at IS NULL);
-CREATE POLICY "Captain can manage team" ON teams FOR ALL USING (captain_id = auth.uid());
+CREATE POLICY "Admins y Captain can manage team" ON public.teams
+FOR All 
+USING (
+  public.is_admin() -- Bypass total para Admin
+  OR 
+  captain_id = auth.uid()
+);
 
 -- TEAM MEMBERS
 CREATE POLICY "Team members viewable by everyone" ON team_members FOR SELECT USING (true);
-CREATE POLICY "Captain can manage team members" ON team_members FOR ALL USING (
+CREATE POLICY "Admins and Captain can manage team members" ON team_members FOR ALL USING (
+  public.is_admin()
+  OR
   EXISTS(SELECT 1 FROM teams WHERE id = team_id AND captain_id = auth.uid()) OR user_id = auth.uid()
 );
 
@@ -600,13 +622,24 @@ CREATE POLICY "Participants can rate" ON venue_ratings FOR INSERT WITH CHECK (
 
 -- NOTIFICATIONS
 CREATE POLICY "Users can view own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can update own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Admins and Users can update own notifications" ON notifications
+  FOR UPDATE USING (
+  public.is_admin() 
+  OR
+  auth.uid() = user_id
+  );
 
 -- AUDIT LOGS
-CREATE POLICY "Venue owners can view their audit logs" ON audit_logs FOR SELECT USING (
+CREATE POLICY "Admins and Venue owners can view their audit logs" ON audit_logs 
+FOR SELECT USING (
+  public.is_admin() -- El Admin ve todo
+  OR
   auth.uid() = user_id
 );
-CREATE POLICY "Venue owners can insert audit logs" ON audit_logs FOR INSERT WITH CHECK (
+CREATE POLICY "Admins and Venue owners can insert audit logs" ON audit_logs 
+FOR INSERT WITH CHECK (
+  public.is_admin() -- El Admin puede insertar con cualquier user_id
+  OR
   auth.uid() = user_id
 );
 

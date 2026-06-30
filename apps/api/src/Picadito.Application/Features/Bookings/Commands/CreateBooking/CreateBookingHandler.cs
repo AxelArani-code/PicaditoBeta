@@ -28,30 +28,6 @@ public class CreateBookingHandler(
             correlationId, request.TimeSlotId))
         {
             _logger.LogInformation("Starting booking creation for TimeSlotId: {TimeSlotId}", request.TimeSlotId);
-            
-            // Logica de validacion usando FluentValidation
-            var validationResult = await validator.ValidateAsync(request, cancellationToken);
-            if (!validationResult.IsValid)
-            {
-                _logger.LogWarning("Validation failed. Errors: {Errors}", 
-                    string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
-                return validationResult.Errors.ConvertAll(error => 
-                    Error.Validation(error.PropertyName, error.ErrorMessage));
-            }
-
-            // Logica de TimeSlot y manejo de errores
-            var timeSlot = await timeSlotRepository.GetByIdAsync(request.TimeSlotId, cancellationToken);
-            if (timeSlot is null) 
-            {
-                _logger.LogWarning("Time slot not found. TimeSlotId: {TimeSlotId}", request.TimeSlotId);
-                return DomainErrors.Booking.NotFound;
-            }
-            if (timeSlot.Status != SlotStatus.available.ToString()) 
-            {
-                _logger.LogWarning("Time slot not available. TimeSlotId: {TimeSlotId}, Status: {Status}", 
-                    request.TimeSlotId, timeSlot.Status);
-                return DomainErrors.Booking.NotAvailable;
-            }
 
             if (currentUserService.UserId is null)
             {
@@ -67,6 +43,35 @@ public class CreateBookingHandler(
             }
 
             var isAdmin = currentUserService.IsAdmin;
+
+            // Logica de validacion usando FluentValidation
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Validation failed. Errors: {Errors}", 
+                    string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                return validationResult.Errors.ConvertAll(error => 
+                    Error.Validation(error.PropertyName, error.ErrorMessage));
+            }
+
+            // Obtener el TimeSlot usando la nueva firma con seguridad
+            var timeSlotResult = await timeSlotRepository.GetByIdAsync(
+                request.TimeSlotId, userId, userRole, cancellationToken);
+
+            if (timeSlotResult.IsError)
+            {
+                return timeSlotResult.Errors;
+            }
+
+            var timeSlot = timeSlotResult.Value;
+
+            if (timeSlot.Status != SlotStatus.available.ToString()) 
+            {
+                _logger.LogWarning("Time slot not available. TimeSlotId: {TimeSlotId}, Status: {Status}", 
+                    request.TimeSlotId, timeSlot.Status);
+                return DomainErrors.Booking.NotAvailable;
+            }
+
             var isOwner = userRole == UserRole.venue_owner;
 
             // Lógica de negocio según el rol del usuario

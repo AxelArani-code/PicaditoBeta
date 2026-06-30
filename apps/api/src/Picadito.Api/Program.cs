@@ -18,6 +18,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Picadito.Application.Features.Bookings.Queries.GetBookings;
+using Picadito.Application.Features.Bookings.Queries.GetBookingById;
 using Picadito.Application.Features.Bookings.Commands.ConfirmBooking;
 using Picadito.Application.Features.Bookings.Commands.RejectBooking;
 using Picadito.Application.Features.Bookings.Commands.CancelBooking;
@@ -39,6 +40,35 @@ using Picadito.Application.Features.AvailabilityRules.Commands.UpdateAvailabilit
 using Picadito.Application.Features.AvailabilityRules.Commands.DeleteAvailabilityRule;
 using Picadito.Application.Features.AvailabilityRules.Queries.GetAllAvailabilityRules;
 using Picadito.Application.Features.AvailabilityRules.Queries.GetAvailabilityRuleById;
+using Picadito.Application.Features.TimeSlots.Commands.CreateTimeSlot;
+using Picadito.Application.Features.TimeSlots.Queries.GetAllTimeSlots;
+using Picadito.Application.Features.TimeSlots.Queries.GetTimeSlotById;
+using Picadito.Application.Features.Matches.Commands.CreateMatch;
+using Picadito.Application.Features.Matches.Commands.UpdateMatch;
+using Picadito.Application.Features.Matches.Queries.GetAllMatches;
+using Picadito.Application.Features.Matches.Queries.GetMatchById;
+using Picadito.Application.Features.Teams.Commands.CreateTeam;
+using Picadito.Application.Features.Teams.Commands.UpdateTeam;
+using Picadito.Application.Features.Teams.Commands.DeleteTeam;
+using Picadito.Application.Features.Teams.Queries.GetAllTeams;
+using Picadito.Application.Features.Teams.Queries.GetTeamById;
+using Picadito.Application.Features.TeamMembers.Commands.CreateTeamMember;
+using Picadito.Application.Features.TeamMembers.Commands.UpdateTeamMember;
+using Picadito.Application.Features.TeamMembers.Commands.DeleteTeamMember;
+using Picadito.Application.Features.TeamMembers.Queries.GetAllTeamMembers;
+using Picadito.Application.Features.TeamMembers.Queries.GetTeamMemberById;
+using Picadito.Application.Features.Notifications.Commands.CreateNotification;
+using Picadito.Application.Features.Notifications.Commands.UpdateNotification;
+using Picadito.Application.Features.Notifications.Commands.DeleteNotification;
+using Picadito.Application.Features.Notifications.Queries.GetAllNotifications;
+using Picadito.Application.Features.Notifications.Queries.GetNotificationById;
+using Picadito.Application.Features.VenueRatings.Commands.CreateVenueRating;
+using Picadito.Application.Features.VenueRatings.Commands.DeleteVenueRating;
+using Picadito.Application.Features.VenueRatings.Queries.GetAllVenueRatings;
+using Picadito.Application.Features.VenueRatings.Queries.GetVenueRatingById;
+using Picadito.Application.Features.AuditLogs.Commands.CreateAuditLog;
+using Picadito.Application.Features.AuditLogs.Queries.GetAllAuditLogs;
+using Picadito.Application.Features.AuditLogs.Queries.GetAuditLogById;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +81,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
 dataSourceBuilder.MapEnum<BookingStatus>("booking_status");
 dataSourceBuilder.MapEnum<SlotStatus>("slot_status");
+dataSourceBuilder.MapEnum<MatchStatus>("match_status");
 var dataSource = dataSourceBuilder.Build();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -98,11 +129,18 @@ builder.Services.AddScoped<IPitchRepository, PitchRepository>();
 builder.Services.AddScoped<IVenueRepository, VenueRepository>();
 builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
 builder.Services.AddScoped<IAvailabilityRuleRepository, AvailabilityRuleRepository>();
+builder.Services.AddScoped<IMatchRepository, MatchRepository>();
+builder.Services.AddScoped<ITeamRepository, TeamRepository>();
+builder.Services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IVenueRatingRepository, VenueRatingRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 builder.Services.AddScoped<ConfirmBookingHandler>();
 builder.Services.AddScoped<RejectBookingHandler>();
 builder.Services.AddScoped<CancelBookingHandler>();
 builder.Services.AddScoped<GetBookingsHandler>();
+builder.Services.AddScoped<GetBookingByIdHandler>();
 
 // Pitch Handlers
 builder.Services.AddScoped<GetPitchByIdHandler>();
@@ -125,6 +163,49 @@ builder.Services.AddScoped<DeleteAvailabilityRuleHandler>();
 builder.Services.AddScoped<GetAllAvailabilityRulesHandler>();
 builder.Services.AddScoped<GetAvailabilityRuleByIdHandler>();
 
+// TimeSlot Handlers
+builder.Services.AddScoped<CreateTimeSlotHandler>();
+builder.Services.AddScoped<GetAllTimeSlotsHandler>();
+builder.Services.AddScoped<GetTimeSlotByIdHandler>();
+
+// Match Handlers
+builder.Services.AddScoped<CreateMatchHandler>();
+builder.Services.AddScoped<GetAllMatchesHandler>();
+builder.Services.AddScoped<GetMatchByIdHandler>();
+builder.Services.AddScoped<UpdateMatchHandler>();
+
+// Team Handlers
+builder.Services.AddScoped<CreateTeamHandler>();
+builder.Services.AddScoped<UpdateTeamHandler>();
+builder.Services.AddScoped<DeleteTeamHandler>();
+builder.Services.AddScoped<GetAllTeamsHandler>();
+builder.Services.AddScoped<GetTeamByIdHandler>();
+
+// TeamMember Handlers
+builder.Services.AddScoped<CreateTeamMemberHandler>();
+builder.Services.AddScoped<UpdateTeamMemberHandler>();
+builder.Services.AddScoped<DeleteTeamMemberHandler>();
+builder.Services.AddScoped<GetAllTeamMembersHandler>();
+builder.Services.AddScoped<GetTeamMemberByIdHandler>();
+
+// Notification Handlers
+builder.Services.AddScoped<CreateNotificationHandler>();
+builder.Services.AddScoped<UpdateNotificationHandler>();
+builder.Services.AddScoped<DeleteNotificationHandler>();
+builder.Services.AddScoped<GetAllNotificationsHandler>();
+builder.Services.AddScoped<GetNotificationByIdHandler>();
+
+// VenueRating Handlers
+builder.Services.AddScoped<CreateVenueRatingHandler>();
+builder.Services.AddScoped<DeleteVenueRatingHandler>();
+builder.Services.AddScoped<GetAllVenueRatingsHandler>();
+builder.Services.AddScoped<GetVenueRatingByIdHandler>();
+
+// AuditLog Handlers
+builder.Services.AddScoped<CreateAuditLogHandler>();
+builder.Services.AddScoped<GetAllAuditLogsHandler>();
+builder.Services.AddScoped<GetAuditLogByIdHandler>();
+
 // Profile Handlers
 builder.Services.AddScoped<GetMyProfileHandler>();
 builder.Services.AddScoped<GetProfileByIdHandler>();
@@ -140,6 +221,24 @@ builder.Services.AddValidatorsFromAssemblyContaining<UpdateVenueCommandValidator
 builder.Services.AddValidatorsFromAssemblyContaining<GetAllVenuesQueryValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<UpdateProfileValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateAvailabilityRuleValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateTimeSlotValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateMatchValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateTeamCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateTeamCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetAllTeamsQueryValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateTeamMemberCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateTeamMemberCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetAllTeamMembersQueryValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateNotificationCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateNotificationCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetAllNotificationsQueryValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateVenueRatingCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetAllVenueRatingsQueryValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetBookingByIdQueryValidator>();
+
+// AuditLog Validators
+builder.Services.AddValidatorsFromAssemblyContaining<CreateAuditLogCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetAllAuditLogsQueryValidator>();
 
 // ==========================================
 // 3. SEGURIDAD (JWT & Auth)
