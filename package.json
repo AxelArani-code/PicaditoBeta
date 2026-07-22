@@ -11,6 +11,6 @@
     "build:web": "npm run build --workspace=web"
   },
   "dependencies": {
-    "next": "latest"
+    "next": "15.5.8"
   }
 }
