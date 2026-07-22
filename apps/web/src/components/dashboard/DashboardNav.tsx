@@ -17,7 +17,7 @@ import {
     Users,
     X,
 } from "lucide-react";
-import type { Profile } from "@/types";
+import type { OwnerProfile } from "@/app/(dashboard)/DashboardShell";
 import { clearAuthSession } from "@/lib/auth/session";
 import { useState, useEffect } from "react";
 
@@ -97,12 +97,12 @@ function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
-    profile: Profile | null;
+    ownerData?: OwnerProfile | null;
     mobileOpen?: boolean;
     onMobileClose?: () => void;
 }
 
-export function DashboardNav({ profile, mobileOpen = false, onMobileClose }: Props) {
+export function DashboardNav({ ownerData, mobileOpen = false, onMobileClose }: Props) {
     const pathname = usePathname();
     const router = useRouter();
     const [collapsed, setCollapsed] = useState(false);
@@ -176,10 +176,14 @@ export function DashboardNav({ profile, mobileOpen = false, onMobileClose }: Pro
                         </span>
                         <span className="min-w-0">
                             <span className="block truncate text-[13px] font-semibold leading-4 text-[#f1f8fb]">
-                                Complejo La...
+                                {ownerData?.venue?.name ?? "Mi Complejo"}
                             </span>
                             <span className="mt-1 block truncate text-[11px] leading-4 text-[#70889a]">
-                                {profile?.city ? `${profile.city}, Men...` : "San Rafael, Men..."}
+                                {ownerData?.venue?.city
+                                    ? ownerData.venue.city
+                                    : ownerData?.profile?.city
+                                    ? ownerData.profile.city
+                                    : "— ciudad —"}
                             </span>
                         </span>
                     </Link>

@@ -3,6 +3,31 @@
 // Section 1 — Types & Interfaces for the Booking View
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Slot status ───────────────────────────────────────────────────────────────
+
+/** Slot status values mirroring the `time_slots.status` column */
+export type SlotStatus = "available" | "booked" | "blocked";
+
+// ── Raw Supabase row (mirrors `time_slots` table columns exactly) ─────────────
+
+/**
+ * Shape of a row returned directly from the `time_slots` Supabase table.
+ * Snake_case field names match the DB column names.
+ */
+export interface RawTimeSlot {
+  id: string;
+  pitch_id: string;
+  /** ISO date — "YYYY-MM-DD" */
+  date: string;
+  /** 24-hour time — "HH:MM" */
+  start_time: string;
+  /** 24-hour time — "HH:MM" */
+  end_time: string;
+  /** Numeric price in ARS from the DB */
+  price: number;
+  status: SlotStatus;
+}
+
 // ── Pitch prop ────────────────────────────────────────────────────────────────
 
 /**
@@ -34,9 +59,6 @@ export interface BookingPitch {
 
 // ── Time slot ─────────────────────────────────────────────────────────────────
 
-/** Slot status values mirroring the `time_slots.status` column */
-export type SlotStatus = "available" | "booked" | "blocked";
-
 /**
  * A single bookable time slot returned by the Supabase query.
  * Field names use camelCase (mapped from snake_case DB columns).
@@ -51,7 +73,9 @@ export interface BookingTimeSlot {
   /** 24-hour time string — "HH:MM" */
   endTime: string;
   status: SlotStatus;
-  /** Pre-formatted price — e.g. "$12.000" */
+  /** Numeric price in ARS — read directly from `time_slots.price` */
+  price: number;
+  /** Pre-formatted price string for display — e.g. "$12.000" */
   priceFormatted: string;
 }
 

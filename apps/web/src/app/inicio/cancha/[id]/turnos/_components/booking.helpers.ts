@@ -3,7 +3,7 @@
 // Section 2 — Helper Functions (dates, formatting, grouping)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { BookingTimeSlot, DayOption, GroupedSlots } from "./booking.types";
+import type { BookingTimeSlot, DayOption, GroupedSlots, RawTimeSlot } from "./booking.types";
 
 // ── Locale labels ─────────────────────────────────────────────────────────────
 
@@ -111,15 +111,37 @@ export function groupSlotsByPeriod(slots: BookingTimeSlot[]): GroupedSlots {
   return groups;
 }
 
-// ── Slot mapping ──────────────────────────────────────────────────────────────
+// ── Slot mapping ─────────────────────────────────────────────────────────────────
 
 /**
- * Maps a raw row from `time_slots` (Supabase snake_case) OR from the .NET API
- * (camelCase) to the typed `BookingTimeSlot` shape used by the UI.
+ * Maps a raw row from `time_slots` (Supabase snake_case) to the typed
+ * `BookingTimeSlot` shape used by the UI.
  *
- * Supports both field naming conventions:
- *   - Supabase: pitch_id, start_time, end_time
- *   - .NET API:  pitchId,  startTime,  endTime
+ * The numeric `price` field is read directly from the DB row; `priceFormatted`
+ * is derived from it so the UI never has to recalculate prices.
+ *
+ * @param row  Raw row returned by the Supabase query on `time_slots`
+ */
+export function mapRawSlot(row: RawTimeSlot): BookingTimeSlot {
+  const price = typeof row.price === "number" ? row.price : Number(row.price ?? 0);
+  return {
+    id:             String(row.id),
+    pitchId:        String(row.pitch_id),
+    date:           String(row.date),
+    startTime:      String(row.start_time),
+    endTime:        String(row.end_time),
+    status:         row.status,
+    price,
+    priceFormatted: formatPrice(price),
+  };
+}
+
+/**
+ * @deprecated Use `mapRawSlot` for Supabase rows instead.
+ *
+ * Legacy mapper that supports both Supabase snake_case and .NET API camelCase
+ * field naming conventions. Kept for backwards-compatibility with the proxy
+ * route handler.
  *
  * @param row           Raw row (Supabase or .NET API response)
  * @param priceFormatted Pre-formatted price string derived from the pitch
@@ -128,6 +150,8 @@ export function mapSlotRow(
   row: Record<string, unknown>,
   priceFormatted: string
 ): BookingTimeSlot {
+  const priceRaw = row.price ?? row.pricePerHour ?? 0;
+  const price    = typeof priceRaw === "number" ? priceRaw : Number(priceRaw);
   return {
     id:             String(row.id),
     pitchId:        String(row.pitchId ?? row.pitch_id),
@@ -135,7 +159,7 @@ export function mapSlotRow(
     startTime:      String(row.startTime ?? row.start_time),
     endTime:        String(row.endTime   ?? row.end_time),
     status:         (row.status ?? "available") as BookingTimeSlot["status"],
+    price,
     priceFormatted,
   };
 }
-
