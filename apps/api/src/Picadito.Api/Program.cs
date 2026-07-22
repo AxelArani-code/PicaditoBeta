@@ -69,6 +69,10 @@ using Picadito.Application.Features.VenueRatings.Queries.GetVenueRatingById;
 using Picadito.Application.Features.AuditLogs.Commands.CreateAuditLog;
 using Picadito.Application.Features.AuditLogs.Queries.GetAllAuditLogs;
 using Picadito.Application.Features.AuditLogs.Queries.GetAuditLogById;
+using Picadito.Application.Features.VenueClosures.Commands.CreateVenueClosure;
+using Picadito.Application.Features.VenueClosures.Commands.DeleteVenueClosure;
+using Picadito.Application.Features.VenueClosures.Queries.GetAllVenueClosures;
+using Picadito.Application.Features.VenueClosures.Queries.GetVenueClosureById;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -122,6 +126,7 @@ builder.Services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IVenueRatingRepository, VenueRatingRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<IVenueClosureRepository, VenueClosureRepository>();
 builder.Services.AddScoped<CreateBookingHandler>();
 builder.Services.AddScoped<ConfirmBookingHandler>();
 builder.Services.AddScoped<RejectBookingHandler>();
@@ -193,6 +198,12 @@ builder.Services.AddScoped<CreateAuditLogHandler>();
 builder.Services.AddScoped<GetAllAuditLogsHandler>();
 builder.Services.AddScoped<GetAuditLogByIdHandler>();
 
+// VenueClosure Handlers
+builder.Services.AddScoped<CreateVenueClosureHandler>();
+builder.Services.AddScoped<DeleteVenueClosureHandler>();
+builder.Services.AddScoped<GetAllVenueClosuresHandler>();
+builder.Services.AddScoped<GetVenueClosureByIdHandler>();
+
 // Profile Handlers
 builder.Services.AddScoped<GetMyProfileHandler>();
 builder.Services.AddScoped<GetProfileByIdHandler>();
@@ -226,6 +237,10 @@ builder.Services.AddValidatorsFromAssemblyContaining<GetBookingByIdQueryValidato
 // AuditLog Validators
 builder.Services.AddValidatorsFromAssemblyContaining<CreateAuditLogCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<GetAllAuditLogsQueryValidator>();
+
+// VenueClosure Validators
+builder.Services.AddValidatorsFromAssemblyContaining<CreateVenueClosureCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetAllVenueClosuresQueryValidator>();
 
 // ==========================================
 // 3. SEGURIDAD (JWT & Auth)

@@ -84,6 +84,17 @@ CREATE TABLE time_slots (
     UNIQUE(pitch_id, date, start_time)
 );
 
+-- VENUE CLOSURES
+CREATE TABLE venue_closures (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pitch_id UUID REFERENCES pitches(id) ON DELETE CASCADE, -- NULL si cierra todo el complejo
+    closure_date DATE NOT NULL,
+    start_time TIME NULL, -- NULL significa todo el día
+    end_time TIME NULL,   -- NULL significa todo el día
+    reason TEXT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- BOOKINGS
 -- (Added pitch_id and date for denormalized indexing and performance)
 CREATE TABLE bookings (
@@ -200,6 +211,8 @@ CREATE INDEX idx_match_players_match ON match_players(match_id);
 
 CREATE INDEX idx_bookings_user ON bookings(user_id);
 CREATE INDEX idx_bookings_timeslot ON bookings(time_slot_id);
+
+CREATE INDEX idx_venue_closures_date ON venue_closures (closure_date, pitch_id);
 
 CREATE INDEX idx_matches_booking ON matches(booking_id);
 CREATE INDEX idx_match_players_user ON match_players(user_id);
@@ -412,7 +425,167 @@ BEGIN
     WHERE id = auth.uid() AND role = 'admin'
   );
 END;
+$$ LANGUAGE plpgsql;
+
+-- funcion para generar turnos con control de seguridad y lógica de excepciones
+
+CREATE OR REPLACE FUNCTION generate_time_slots_by_range(
+    p_start_date DATE,
+    p_end_date DATE,
+    p_bypass_security BOOLEAN DEFAULT FALSE
+)
+RETURNS TEXT AS $$
+DECLARE
+    v_current_date DATE := p_start_date;
+    v_is_admin BOOLEAN;
+BEGIN
+    -- 1. Control de Seguridad (se omite si p_bypass_security = TRUE, ej: cron)
+    IF NOT p_bypass_security THEN
+        SELECT (auth.jwt() ->> 'role' = 'service_role' OR 
+                EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+        INTO v_is_admin;
+
+        IF NOT v_is_admin THEN
+            RAISE EXCEPTION 'Acceso denegado: Solo los administradores pueden generar turnos.';
+        END IF;
+    END IF;
+
+    IF p_start_date > p_end_date THEN
+        RAISE EXCEPTION 'La fecha de inicio no puede ser posterior a la fecha de fin.';
+    END IF;
+
+    -- 2. Iterar día por día dentro del rango
+    WHILE v_current_date <= p_end_date LOOP
+        
+        INSERT INTO public.time_slots (pitch_id, date, start_time, end_time, price, status)
+        SELECT 
+            ar.pitch_id,
+            v_current_date,
+            ar.start_time,
+            ar.end_time,
+            COALESCE(ar.price_override, p.price_per_hour),
+            'available'::TEXT
+        FROM public.availability_rules ar
+        JOIN public.pitches p ON ar.pitch_id = p.id
+        WHERE ar.day_of_week = EXTRACT(dow FROM v_current_date)
+          AND p.deleted_at IS NULL
+          AND p.is_active = true
+          
+          -- LÓGICA DE EXCEPCIONES: No generar si existe un bloqueo activo
+          AND NOT EXISTS (
+              SELECT 1 
+              FROM public.venue_closures vc
+              WHERE (vc.pitch_id = ar.pitch_id OR vc.pitch_id IS NULL) -- Bloqueo específico o global
+                AND vc.closure_date = v_current_date
+                AND (
+                    (vc.start_time IS NULL AND vc.end_time IS NULL) -- Cierre de todo el día
+                    OR 
+                    (ar.start_time < vc.end_time AND ar.end_time > vc.start_time) -- Solapamiento parcial de horas
+                )
+          )
+        ON CONFLICT (pitch_id, date, start_time) DO NOTHING;
+
+        v_current_date := v_current_date + INTERVAL '1 day';
+    END LOOP;
+
+    RETURN 'Generación completada aplicando excepciones vigentes.';
+END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Función para cancelar turnos según reglas de cierre
+
+CREATE OR REPLACE FUNCTION on_venue_closure_inserted()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- 1. Modificar los turnos que coincidan con la regla de cierre
+    -- Cambiamos el estado a 'unavailable' para que la app sepa que el admin lo canceló
+    UPDATE public.time_slots
+    SET status = 'unavailable'
+    WHERE (pitch_id = NEW.pitch_id OR NEW.pitch_id IS NULL) -- Aplica a una cancha o a todo el complejo
+      AND date = NEW.closure_date
+      AND status = 'available' -- IMPORTANTE: Solo afectamos turnos libres
+      AND (
+          (NEW.start_time IS NULL AND NEW.end_time IS NULL) -- Cierre total del día
+          OR 
+          (start_time < NEW.end_time AND end_time > NEW.start_time) -- Solapamiento parcial de horas
+      );
+
+    -- NOTA SOBRE TURNOS RESERVADOS ('booked'):
+    -- Si hay turnos ya reservados, este trigger los ignorará deliberadamente.
+    -- Así el sistema te da la oportunidad de notificar manualmente a los clientes o hacer reembolsos.
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Vincular el Trigger a la tabla de cierres
+
+CREATE TRIGGER trigger_cancel_slots_on_closure
+AFTER INSERT ON public.venue_closures
+FOR EACH ROW
+EXECUTE FUNCTION on_venue_closure_inserted();
+
+-- Trigger para actualizar turnos al insertar o modificar reglas de disponibilidad
+
+CREATE OR REPLACE FUNCTION public.on_availability_rule_updated()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_days_to_generate INT;
+    v_end_date DATE;
+BEGIN
+    -- 1. Rama INSERT: generar turnos directamente (no hay valores viejos que comparar)
+    IF TG_OP = 'INSERT' THEN
+
+        SELECT COALESCE(
+            (SELECT value::INTEGER FROM public.system_settings WHERE key = 'cron_generation_days'),
+            15
+        ) INTO v_days_to_generate;
+
+        v_end_date := CURRENT_DATE + (v_days_to_generate || ' days')::INTERVAL;
+
+        PERFORM public.generate_time_slots_by_range(CURRENT_DATE, v_end_date, p_bypass_security => TRUE);
+
+        RETURN NEW;
+    END IF;
+
+    -- 2. Rama UPDATE: solo ejecuta si cambiaron start_time, end_time o price_override
+    IF OLD.start_time IS DISTINCT FROM NEW.start_time
+       OR OLD.end_time IS DISTINCT FROM NEW.end_time
+       OR OLD.price_override IS DISTINCT FROM NEW.price_override THEN
+
+        -- 2a. Actualizar turnos libres futuros que coincidan con la regla modificada
+        UPDATE public.time_slots ts
+        SET
+            start_time = NEW.start_time,
+            end_time = NEW.end_time,
+            price = COALESCE(NEW.price_override, p.price_per_hour)
+        FROM public.pitches p
+        WHERE ts.pitch_id = NEW.pitch_id
+          AND p.id = ts.pitch_id
+          AND ts.date >= CURRENT_DATE
+          AND EXTRACT(DOW FROM ts.date) = NEW.day_of_week
+          AND ts.start_time = OLD.start_time
+          AND ts.status = 'available';
+
+        -- 2b. Autogeneración de la malla (futuros 15 días por defecto)
+        SELECT COALESCE(
+            (SELECT value::INTEGER FROM public.system_settings WHERE key = 'cron_generation_days'),
+            15
+        ) INTO v_days_to_generate;
+
+        v_end_date := CURRENT_DATE + (v_days_to_generate || ' days')::INTERVAL;
+
+        PERFORM public.generate_time_slots_by_range(CURRENT_DATE, v_end_date, p_bypass_security => TRUE);
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER trigger_update_slots_on_rule_change
+AFTER INSERT OR UPDATE ON public.availability_rules
+FOR EACH ROW
+EXECUTE FUNCTION public.on_availability_rule_updated();
 
 -- ==========================================
 -- 6. ROW LEVEL SECURITY (RLS)
@@ -423,6 +596,7 @@ ALTER TABLE venues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pitches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE time_slots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE venue_closures ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE match_players ENABLE ROW LEVEL SECURITY;
@@ -500,6 +674,17 @@ USING (
   OR EXISTS (
     SELECT 1 FROM pitches p JOIN venues v ON p.venue_id = v.id 
     WHERE p.id = time_slots.pitch_id AND v.owner_id = auth.uid()
+  )
+);
+
+-- VENUE CLOSURES
+CREATE POLICY "Venue closures viewable by everyone" ON venue_closures FOR SELECT USING (true);
+CREATE POLICY "Admins and Venue owners can manage closures" ON venue_closures FOR ALL USING (
+  public.is_admin()
+  OR EXISTS (
+    SELECT 1 FROM pitches p JOIN venues v ON p.venue_id = v.id
+    WHERE (p.id = venue_closures.pitch_id OR venue_closures.pitch_id IS NULL) 
+    AND v.owner_id = auth.uid()
   )
 );
 
@@ -659,3 +844,56 @@ COMMIT;
 ALTER PUBLICATION supabase_realtime ADD TABLE bookings;
 ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
 ALTER PUBLICATION supabase_realtime ADD TABLE matches;
+
+-- ==========================================
+-- 8. AUTOMATION & PG_CRON
+-- ==========================================
+
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Tabla de configuración del sistema
+CREATE TABLE IF NOT EXISTS public.system_settings (
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+INSERT INTO public.system_settings (key, value)
+VALUES ('cron_generation_days', '15')
+ON CONFLICT (key) DO NOTHING;
+
+-- Función envolvente para ejecución automatizada desde cron
+CREATE OR REPLACE FUNCTION public.run_automated_cron_generation()
+RETURNS TEXT AS $$
+DECLARE
+    v_days_to_generate INT;
+    v_start_date DATE := CURRENT_DATE;
+    v_end_date   DATE;
+BEGIN
+    SELECT COALESCE(
+        (SELECT value::INTEGER FROM public.system_settings WHERE key = 'cron_generation_days'),
+        7
+    ) INTO v_days_to_generate;
+
+    v_end_date := v_start_date + (v_days_to_generate || ' days')::INTERVAL;
+
+    PERFORM public.generate_time_slots_by_range(v_start_date, v_end_date, p_bypass_security => TRUE);
+
+    RETURN 'Cron ejecutado exitosamente: ' || v_days_to_generate || ' días generados desde ' || v_start_date || ' hasta ' || v_end_date;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Programación de la tarea diaria (00:00 ART / 03:00 UTC)
+-- SELECT cron.unschedule('generar-turnos-automatico'); Cambio sugerido para un save
+-- Programación de la tarea diaria de forma segura
+DO $$ 
+BEGIN 
+    PERFORM cron.unschedule('generar-turnos-automatico'); 
+EXCEPTION WHEN OTHERS THEN 
+    -- Ignora el error si la tarea no existía previamente
+END $$;
+SELECT cron.schedule(
+    'generar-turnos-automatico',
+    '0 3 * * *',
+    $$SELECT public.run_automated_cron_generation();$$
+);

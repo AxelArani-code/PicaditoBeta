@@ -25,6 +25,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<VenueRating> VenueRatings => Set<VenueRating>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<VenueClosure> VenueClosures => Set<VenueClosure>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
