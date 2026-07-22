@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { confirmBookingAdmin, cancelBookingAdmin } from "@/services/admin-bookings.service";
 import {
-  getBookingStatusDisplay,
   formatBookingDate,
   formatPrice,
 } from "@/services/bookings.service";
