@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { backendUrl } from "@/config/api";
 
 /**
  * proxy/pitches/[id]/slots/route.ts
@@ -6,13 +7,13 @@ import { NextResponse } from "next/server";
  * GET /api/proxy/pitches/{pitchId}/slots?date=YYYY-MM-DD
  *
  * Reenvía la petición al endpoint del backend .NET:
- *   GET http://localhost:5000/api/Pitches/{pitchId}/slots?date=YYYY-MM-DD
+ *   GET {BACKEND_API_BASE}/Pitches/{pitchId}/slots?date=YYYY-MM-DD
  *
  * Si el backend no tiene este endpoint todavía, responde con array vacío
  * para que la UI muestre el estado "sin turnos" en lugar de un error.
  */
 
-const BACKEND_BASE_URL = "http://localhost:5000/api/Pitches";
+const BACKEND_BASE_URL = backendUrl("Pitches");
 
 export async function GET(
   request: Request,
