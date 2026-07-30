@@ -1,18 +1,18 @@
-# 1. Etapa de construcción
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# 1. Etapa de construcción usando .NET 10
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copiamos todo el repositorio al contenedor (para incluir todas las capas de tu Clean Architecture)
+# Copiamos todo el repositorio al contenedor
 COPY . .
 
-# Restauramos las dependencias usando la ruta completa desde la raíz de tu GitHub
+# Restauramos las dependencias
 RUN dotnet restore "apps/api/src/Picadito.Api/Picadito.Api.csproj"
 
 # Compilamos el proyecto para producción
 RUN dotnet publish "apps/api/src/Picadito.Api/Picadito.Api.csproj" -c Release -o /app/publish
 
-# 2. Etapa final (el servidor que correrá en Render)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+# 2. Etapa final usando .NET 10
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
