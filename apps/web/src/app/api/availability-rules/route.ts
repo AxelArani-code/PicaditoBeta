@@ -88,13 +88,13 @@ export async function GET(req: NextRequest) {
 // ── POST /api/availability-rules ─────────────────────────────────────────────
 // Proxea al backend: POST {NEXT_PUBLIC_API_URL}/api/availabilityrules
 //
-// Body esperado (igual al que acepta el backend .NET):
-// {
-//   "pitchId":       "uuid",
-//   "dayOfWeek":     "Friday",    ← string EN capitalizado
-//   "startTime":     "20:00",
-//   "endTime":       "21:00",
-//   "priceOverride": 30000.00
+// Body esperado (igual al que acepta el backend .NET):\r
+// {\r
+//   "pitchId":       "uuid",\r
+//   "dayOfWeek":     "Friday",    ← string EN capitalizado\r
+//   "startTime":     "20:00",\r
+//   "endTime":       "21:00",\r
+//   "priceOverride": 30000.00\r
 // }
 
 export async function POST(req: NextRequest) {
@@ -147,3 +147,115 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+// ── PUT /api/availability-rules?id={uuid} ──────────────────────────────────────
+// Proxea al backend: PUT {NEXT_PUBLIC_API_URL}/api/availabilityrules/{id}
+
+export async function PUT(req: NextRequest) {
+  console.log("=== [PUT /api/availability-rules] ===");
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "id es requerido" }, { status: 400 });
+  }
+
+  const token = await resolveToken(req);
+  if (!token) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  let bodyText: string;
+  try {
+    bodyText = await req.text();
+    JSON.parse(bodyText);
+  } catch {
+    return NextResponse.json({ error: "Body JSON invalido" }, { status: 400 });
+  }
+
+  const backendTarget = `${BACKEND_BASE}/${encodeURIComponent(id)}`;
+  console.log("[PUT /api/availability-rules] → backend:", backendTarget);
+
+  try {
+    const res = await fetch(backendTarget, {
+      method: "PUT",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: bodyText,
+      cache: "no-store",
+    });
+
+    const text = await res.text();
+    console.log(`[PUT /api/availability-rules] backend status: ${res.status}`);
+    if (!res.ok) console.error("[PUT /api/availability-rules] backend error:", text);
+
+    return new NextResponse(text, {
+      status: res.status,
+      headers: { "content-type": "application/json" },
+    });
+  } catch (err) {
+    console.error("[PUT /api/availability-rules] fetch error:", err);
+    return NextResponse.json(
+      { error: "No se pudo conectar al servidor de horarios" },
+      { status: 502 }
+    );
+  }
+}
+
+// ── DELETE /api/availability-rules?id={uuid} ──────────────────────────────────
+// Proxea al backend: DELETE {NEXT_PUBLIC_API_URL}/api/availabilityrules/{id}
+
+export async function DELETE(req: NextRequest) {
+  console.log("=== [DELETE /api/availability-rules] ===");
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "id es requerido" }, { status: 400 });
+  }
+
+  const token = await resolveToken(req);
+  if (!token) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  const backendTarget = `${BACKEND_BASE}/${encodeURIComponent(id)}`;
+  console.log("[DELETE /api/availability-rules] → backend:", backendTarget);
+
+  try {
+    const res = await fetch(backendTarget, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    const text = await res.text();
+    console.log(`[DELETE /api/availability-rules] backend status: ${res.status}`);
+    if (!res.ok) console.error("[DELETE /api/availability-rules] backend error:", text);
+
+    // 204 No Content no lleva body
+    if (res.status === 204) {
+      return new NextResponse(null, { status: 204 });
+    }
+
+    return new NextResponse(text, {
+      status: res.status,
+      headers: { "content-type": "application/json" },
+    });
+  } catch (err) {
+    console.error("[DELETE /api/availability-rules] fetch error:", err);
+    return NextResponse.json(
+      { error: "No se pudo conectar al servidor de horarios" },
+      { status: 502 }
+    );
+  }
+}
+

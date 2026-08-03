@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { backendUrl } from "@/config/api";
 
 /**
@@ -7,8 +7,10 @@ import { backendUrl } from "@/config/api";
  * Frontend → /api/proxy/venueclosures → {BACKEND_API_BASE}/VenueClosures
  *
  * Per backend dev:
- *   GET  → público (sin auth)
- *   POST → requiere Authorization: Bearer <token>
+ *   GET    → público (sin auth)
+ *   POST   → requiere Authorization: Bearer <token>
+ *   PUT    → requiere Authorization: Bearer <token>  (?id=uuid)
+ *   DELETE → requiere Authorization: Bearer <token>  (?id=uuid)
  *
  * Response (GET): PagedResponse<VenueClosureDto>
  *   { Items: [...], PageNumber, PageSize, TotalCount, TotalPages }
@@ -18,7 +20,7 @@ import { backendUrl } from "@/config/api";
 //     ASP.NET Core routing is case-insensitive, but we match backend dev spec exactly.
 const BACKEND_URL = backendUrl("VenueClosures");
 
-async function forwardRequest(request: Request, method: "GET" | "POST") {
+async function forwardRequest(request: Request | NextRequest, method: "GET" | "POST" | "PUT" | "DELETE", id?: string) {
   const authorization = request.headers.get("authorization");
 
   const requestHeaders: HeadersInit = {
@@ -27,20 +29,29 @@ async function forwardRequest(request: Request, method: "GET" | "POST") {
     ...(authorization ? { Authorization: authorization } : {}),
   };
 
+  // Build target URL — append /{id} if present
+  const targetUrl = id ? `${BACKEND_URL}/${encodeURIComponent(id)}` : BACKEND_URL;
+
   // ── DIAGNOSTIC SERVER LOG ─────────────────────────────────────────────────
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log(`🔵 proxy/venueclosures: ${method} request`);
-  console.log(`   → Backend URL : ${BACKEND_URL}`);
+  console.log(`   → Backend URL : ${targetUrl}`);
   console.log(`   → Auth header : ${authorization ? "Bearer ***" : "ninguno (GET público)"}`);
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   // ─────────────────────────────────────────────────────────────────────────
 
   try {
-    const res = await fetch(BACKEND_URL, {
+    const hasBody = method === "POST" || method === "PUT";
+    const res = await fetch(targetUrl, {
       method,
       headers: requestHeaders,
-      body: method === "POST" ? await request.text() : undefined,
+      body: hasBody ? await request.text() : undefined,
     });
+
+    // 204 No Content — no body
+    if (res.status === 204) {
+      return new NextResponse(null, { status: 204 });
+    }
 
     const body = await res.text();
     const responseHeaders = new Headers();
@@ -58,7 +69,7 @@ async function forwardRequest(request: Request, method: "GET" | "POST") {
     return new NextResponse(body, { status: res.status, headers: responseHeaders });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    console.error(`❌ proxy/venueclosures: error de red → ${BACKEND_URL}`);
+    console.error(`❌ proxy/venueclosures: error de red → ${targetUrl}`);
     console.error(`   Error: ${errMsg}`);
     return new NextResponse(
       JSON.stringify({ error: "No se pudo conectar al backend", detail: errMsg }),
@@ -74,3 +85,14 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   return forwardRequest(request, "POST");
 }
+
+export async function PUT(request: NextRequest) {
+  const id = new URL(request.url).searchParams.get("id") ?? undefined;
+  return forwardRequest(request, "PUT", id);
+}
+
+export async function DELETE(request: NextRequest) {
+  const id = new URL(request.url).searchParams.get("id") ?? undefined;
+  return forwardRequest(request, "DELETE", id);
+}
+

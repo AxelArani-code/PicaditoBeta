@@ -59,6 +59,11 @@ const proxyRequest = async (
       responseHeaders.set("content-type", contentType);
     }
 
+    // 204 No Content — no body to send
+    if (response.status === 204) {
+      return new NextResponse(null, { status: 204 });
+    }
+
     return new NextResponse(body, {
       status: response.status,
       headers: responseHeaders,
@@ -91,6 +96,22 @@ export async function PUT(
   return proxyRequest(request, id);
 }
 
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  return proxyRequest(request, id);
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  return proxyRequest(request, id);
+}
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -98,3 +119,4 @@ export async function DELETE(
   const { id } = await params;
   return proxyRequest(request, id);
 }
+

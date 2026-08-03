@@ -3,29 +3,36 @@ import { backendUrl } from "@/config/api";
 
 const BACKEND_BASE_URL = backendUrl("Bookings");
 
-const forwardRequest = async (request, method) => {
+const forwardRequest = async (request: Request, method: string) => {
   const url = new URL(request.url);
-  const backendUrl = new URL(BACKEND_BASE_URL);
+  const backendUrlObj = new URL(BACKEND_BASE_URL);
 
   url.searchParams.forEach((value, key) => {
-    backendUrl.searchParams.append(key, value);
+    backendUrlObj.searchParams.append(key, value);
   });
 
   const authorization = request.headers.get("authorization");
-  console.log("🔵 proxy/bookings: REQUEST RECIBIDO", { method, backendUrl: backendUrl.toString() });
+  console.log("🔵 proxy/bookings: REQUEST RECIBIDO", { method, backendUrl: backendUrlObj.toString() });
 
-  const requestHeaders = {
+  const requestHeaders: HeadersInit = {
     Accept: "*/*",
     "Content-Type": "application/json",
     ...(authorization ? { Authorization: authorization } : {}),
   };
 
+  const hasBody = method === "POST" || method === "PUT" || method === "PATCH";
+
   try {
-    const response = await fetch(backendUrl.toString(), {
+    const response = await fetch(backendUrlObj.toString(), {
       method,
       headers: requestHeaders,
-      body: method === "POST" || method === "PATCH" ? await request.text() : undefined,
+      body: hasBody ? await request.text() : undefined,
     });
+
+    // 204 No Content — no body
+    if (response.status === 204) {
+      return new NextResponse(null, { status: 204 });
+    }
 
     const body = await response.text();
     const responseHeaders = new Headers();
@@ -54,3 +61,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   return forwardRequest(request, "POST");
 }
+
+export async function PUT(request: Request) {
+  return forwardRequest(request, "PUT");
+}
+
+export async function PATCH(request: Request) {
+  return forwardRequest(request, "PATCH");
+}
+
+export async function DELETE(request: Request) {
+  return forwardRequest(request, "DELETE");
+}
+

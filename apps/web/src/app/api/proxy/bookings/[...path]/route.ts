@@ -48,6 +48,11 @@ const proxyRequest = async (request: Request, pathSegments: string[]) => {
 
     console.log(`🔵 proxy/bookings ← ${response.status} ${backendUrl}`);
 
+    // 204 No Content — no body
+    if (response.status === 204) {
+      return new NextResponse(null, { status: 204 });
+    }
+
     const responseHeaders = new Headers();
     const contentType = response.headers.get("content-type");
     if (contentType) responseHeaders.set("content-type", contentType);
