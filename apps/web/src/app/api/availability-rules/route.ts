@@ -1,6 +1,6 @@
 // app/api/availability-rules/route.ts
 //
-// Proxy hacia el backend .NET en localhost:5000/api/availabilityrules
+// Proxy hacia el backend .NET en {NEXT_PUBLIC_API_URL}/api/availabilityrules
 //
 // GET  /api/availability-rules?pitchId={uuid}  → GET  /api/availabilityrules?pitchId={uuid}
 // POST /api/availability-rules                 → POST /api/availabilityrules
@@ -9,8 +9,9 @@
 // y lo reenvía como Bearer al backend .NET.
 
 import { NextRequest, NextResponse } from "next/server";
+import { backendUrl } from "@/config/api";
 
-const BACKEND_BASE = "http://localhost:5000/api/availabilityrules";
+const BACKEND_BASE = backendUrl("availabilityrules");
 
 /** Extrae el Bearer token del header o del cookie picadito_access_token */
 async function resolveToken(req: NextRequest): Promise<string | null> {
@@ -33,7 +34,7 @@ async function resolveToken(req: NextRequest): Promise<string | null> {
 }
 
 // ── GET /api/availability-rules?pitchId={uuid} ──────────────────────────────
-// Proxea al backend: GET http://localhost:5000/api/availabilityrules?pitchId={uuid}
+// Proxea al backend: GET {NEXT_PUBLIC_API_URL}/api/availabilityrules?pitchId={uuid}
 
 export async function GET(req: NextRequest) {
   console.log("=== [GET /api/availability-rules] ===");
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
 }
 
 // ── POST /api/availability-rules ─────────────────────────────────────────────
-// Proxea al backend: POST http://localhost:5000/api/availabilityrules
+// Proxea al backend: POST {NEXT_PUBLIC_API_URL}/api/availabilityrules
 //
 // Body esperado (igual al que acepta el backend .NET):
 // {

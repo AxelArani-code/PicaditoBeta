@@ -273,7 +273,7 @@ export default function BookingsDashboardPage() {
           🔍 Info de Diagnóstico (Click para expandir)
         </summary>
         <div className="mt-3 space-y-2 text-xs font-mono text-[#9ab59d]">
-          <div>API URL: <span className="text-[#dce5d9]">http://localhost:5000/api/Bookings</span></div>
+          <div>API URL: <span className="text-[#dce5d9]">{process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000'}/api/Bookings</span></div>
           <div>Token presente: <span className="text-[#6bfe8f]">{getAccessToken() ? "✓ SÍ" : "✗ NO"}</span></div>
           <div>Token preview: <span className="text-[#dce5d9]">{getAccessToken() ? getAccessToken()!.substring(0, 30) + "..." : "N/A"}</span></div>
           <div>Estado carga: <span className="text-[#dce5d9]">{isLoading ? "Cargando..." : "Listo"}</span></div>
