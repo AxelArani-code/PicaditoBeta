@@ -111,7 +111,7 @@ export default async function CanchaDetailPage({ params }: PageProps) {
   let pitch: PitchDetail;
 
   try {
-    const dto = await fetchFromApi<ApiPitch>(`/api/proxy/pitches/${id}`);
+    const dto = await fetchFromApi<ApiPitch>(`/Pitches/${id}`);
 
     if (!dto || !dto.id) notFound();
 

@@ -8,13 +8,24 @@
  * supabase.auth.getSession() desde Server Components cause re-renders
  * infinitos al actualizar las cookies de sesión de Supabase.
  *
- * Arquitectura:
- *   Server Component → fetchFromApi() → /api/proxy/* → .NET API → Supabase
+ * Arquitectura en Server Components:
+ *   Server Component → fetchFromApi() → .NET API directamente → Supabase
+ *
+ * ⚠️  NO usamos el proxy /api/proxy/* desde Server Components porque en
+ *     producción (Vercel) el servidor no puede llamarse a sí mismo por HTTP.
+ *     Los proxies son solo para Client Components que no pueden alcanzar
+ *     el backend directamente.
  */
 
 import { cookies } from "next/headers";
+import { BACKEND_API_BASE } from "@/config/api";
 
-const API_BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+/**
+ * Base URL para fetch desde Server Components.
+ * Llama directamente al backend .NET (no pasa por el proxy interno de Next.js).
+ */
+const API_BASE = BACKEND_API_BASE;
+
 
 /**
  * Obtiene el JWT desde la cookie `picadito_access_token`.
@@ -30,9 +41,10 @@ async function getServerAccessToken(): Promise<string | null> {
 }
 
 /**
- * Realiza un fetch autenticado desde el servidor hacia el proxy local.
+ * Realiza un fetch autenticado desde el servidor directamente al backend .NET.
  *
- * @param path  - Ruta relativa, ej: "/api/proxy/pitches" o "/api/proxy/pitches/some-id"
+ * @param path  - Ruta relativa al backend, ej: "/Pitches" o "/Pitches/some-id"
+ *                (NO incluir el prefijo /api, ya está en BACKEND_API_BASE)
  * @param init  - Opciones adicionales de fetch (method, body, etc.)
  * @returns     - La respuesta JSON ya parseada, o lanza un error
  */

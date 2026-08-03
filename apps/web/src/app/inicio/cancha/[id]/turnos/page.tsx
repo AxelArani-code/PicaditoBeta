@@ -30,7 +30,7 @@ export default async function TurnosPage({ params }: PageProps) {
   let dto: ApiPitch;
 
   try {
-    const result = await fetchFromApi<ApiPitch>(`/api/proxy/pitches/${id}`);
+    const result = await fetchFromApi<ApiPitch>(`/Pitches/${id}`);
     if (!result || !result.id) notFound();
     dto = result;
   } catch (err) {

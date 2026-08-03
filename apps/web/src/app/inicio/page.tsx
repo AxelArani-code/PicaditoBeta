@@ -107,7 +107,7 @@ export default async function InicioPage({
 
   try {
     const data = await fetchFromApi<ApiResponse | ApiPitch[]>(
-      `/api/proxy/pitches?${apiParams.toString()}`
+      `/Pitches?${apiParams.toString()}`
     );
 
     if (Array.isArray(data)) {
