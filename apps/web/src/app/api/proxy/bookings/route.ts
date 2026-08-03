@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { backendUrl } from "@/config/api";
 
-const BACKEND_BASE_URL = "http://localhost:5000/api/Bookings";
+const BACKEND_BASE_URL = backendUrl("Bookings");
 
 const forwardRequest = async (request, method) => {
   const url = new URL(request.url);

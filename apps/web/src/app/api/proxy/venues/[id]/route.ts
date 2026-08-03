@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { backendUrl } from "@/config/api";
 
-const BACKEND_BASE_URL = "http://localhost:5000/api/Venues";
+const BACKEND_BASE_URL = backendUrl("Venues");
 
 export async function GET(request: Request, { params }) {
   const { id } = params;

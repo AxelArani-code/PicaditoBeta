@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { BACKEND_ORIGIN } from "@/config/api";
 
-const BACKEND_HEALTH_URL = "http://localhost:5000/health";
+const BACKEND_HEALTH_URL = `${BACKEND_ORIGIN}/health`;
 
 export async function GET() {
   try {
