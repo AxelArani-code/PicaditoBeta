@@ -524,7 +524,7 @@ export default function TurnosClient({ pitch, pitchImageSrc }: Props) {
                 {selectedSlot ? (
                   <>
                     <BadgeCheck className="h-4 w-4" strokeWidth={2} />
-                    Book Time Slot
+                    Continuar
                   </>
                 ) : (
                   "Select a time slot"

@@ -54,7 +54,6 @@ export async function POST(request: Request) {
 
   try {
     // ── Validate token and get user_id ────────────────────────────────────────
-    // Use the standard server client just for validation
     const supabaseValidator = await createServerClient();
     const { data: { user }, error: authError } = await supabaseValidator.auth.getUser(resolvedToken);
 
@@ -72,8 +71,6 @@ export async function POST(request: Request) {
     }
 
     // ── Create an AUTHENTICATED Supabase client with the Bearer token ─────────
-    // This is the KEY fix: the client sends the token in every request,
-    // so auth.uid() works correctly in Supabase RLS policies.
     const authedSupabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -90,10 +87,12 @@ export async function POST(request: Request) {
       }
     );
 
-    // ── Fetch total_price from DB ─────────────────────────────────────────────
+    // ── Fetch time_slot data: price, pitch_id, date ───────────────────────────
+    // The bookings table has NOT NULL columns: pitch_id and date,
+    // which must be populated from the time_slot row.
     const { data: slot, error: slotError } = await authedSupabase
       .from("time_slots")
-      .select("price")
+      .select("price, pitch_id, date")
       .eq("id", slot_id)
       .single();
 
@@ -105,13 +104,37 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("[POST /api/bookings] 💰 Precio desde BD:", slot.price);
+    console.log("[POST /api/bookings] 📋 Slot data:", {
+      price:    slot.price,
+      pitch_id: slot.pitch_id,
+      date:     slot.date,
+    });
+
+    // ── Check for existing active booking on this slot (before INSERT) ────────
+    // Prevents the 23505 unique_active_booking_slot constraint error.
+    const { data: existingBooking } = await authedSupabase
+      .from("bookings")
+      .select("id, status")
+      .eq("time_slot_id", slot_id)
+      .in("status", ["pending", "confirmed"])
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (existingBooking) {
+      console.warn("[POST /api/bookings] ⚠️ Slot ya reservado:", existingBooking);
+      return NextResponse.json(
+        { error: "Este turno ya fue reservado. Por favor seleccioná otro horario." },
+        { status: 409 }
+      );
+    }
 
     // ── INSERT booking (con auth.uid() activo por el Bearer token) ────────────
     const { data, error } = await authedSupabase
       .from("bookings")
       .insert({
         time_slot_id: slot_id,
+        pitch_id:     slot.pitch_id,   // ← required NOT NULL field
+        date:         slot.date,        // ← required NOT NULL field
         user_id:      user.id,
         status:       "pending",
         total_price:  slot.price,
@@ -125,7 +148,29 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      console.error("[POST /api/bookings] Error en INSERT:", error);
+      console.error("[POST /api/bookings] Error en INSERT:", {
+        code:    error.code,
+        message: error.message,
+        details: error.details,
+        hint:    error.hint,
+      });
+
+      // PostgreSQL unique constraint violation
+      if (error.code === "23505") {
+        return NextResponse.json(
+          { error: "Este turno ya fue reservado. Por favor seleccioná otro horario." },
+          { status: 409 }
+        );
+      }
+
+      // PostgreSQL not-null constraint violation
+      if (error.code === "23502") {
+        return NextResponse.json(
+          { error: `Campo requerido faltante: ${error.details ?? error.message}` },
+          { status: 400 }
+        );
+      }
+
       return NextResponse.json(
         { error: error.message ?? "Error al crear la reserva" },
         { status: 500 }
@@ -144,3 +189,4 @@ export async function POST(request: Request) {
     );
   }
 }
+
