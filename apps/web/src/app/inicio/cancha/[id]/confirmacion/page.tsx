@@ -70,6 +70,36 @@ function SuccessModal({
   booking: BookingInfo;
   onClose: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  // Build the share URL — points to the venue/pitch page so friends can book too
+  const shareUrl =
+    typeof window !== "undefined" ? window.location.origin + "/inicio" : "";
+  const shareText = `⚽ ¡Me anoté un turno en ${booking.venueName}!\n📅 ${booking.dateLabel} · 🕐 ${booking.timeLabel}\n\nVení a jugar con nosotros. Reservá tu lugar en Picadito 👇`;
+
+  async function handleShare() {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "¡Turno en Picadito!",
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch {
+        // User cancelled share — silently ignore
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      } catch {
+        // Clipboard not available
+      }
+    }
+  }
+
   // Trap focus & close on Escape
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -162,17 +192,46 @@ function SuccessModal({
 
           {/* Actions */}
           <div className="mt-6 flex flex-col gap-3">
+            {/* Primary: go to "Mis Reservas" to track the booking status */}
             <Link
-              href="/mis-partidos"
+              href="/inicio/mis-reservas"
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4be176] py-3 text-sm font-black text-[#0d1117] shadow-[0_8px_28px_rgba(75,225,118,0.25)] transition hover:brightness-110"
             >
-              Ver mis partidos
+              Ver estado de mi reserva
             </Link>
+
+            {/* Secondary: viral share button */}
             <button
-              onClick={onClose}
-              className="rounded-xl border border-[#1e3a5f] py-3 text-sm font-semibold text-[#8b949e] transition hover:border-[#4be176]/40 hover:text-white"
+              onClick={handleShare}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#22d3ee]/40 bg-[#0e1f30] py-3 text-sm font-bold text-[#22d3ee] transition hover:border-[#22d3ee]/80 hover:bg-[#22d3ee]/10 active:scale-[0.98]"
             >
-              Quedarme en esta página
+              {copied ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  ¡Link copiado!
+                </>
+              ) : (
+                <>
+                  {/* Share icon inline */}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                  Invitar amigos al turno
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -180,6 +239,7 @@ function SuccessModal({
     </div>
   );
 }
+
 
 // ─── Toast Component ──────────────────────────────────────────────────────────
 
